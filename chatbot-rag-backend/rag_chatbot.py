@@ -22,7 +22,6 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
-
 # =========================
 # Gemini Setup
 # =========================
@@ -46,23 +45,22 @@ def ask_gemini(prompt: str) -> str:
 
 
 # =========================
-# RAG Setup
+# RAG Setup (HuggingFace SAFE)
 # =========================
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
 
 
 @lru_cache(maxsize=1)
 def get_vector_store():
-    pdf_path = BASE_DIR / "ml-book.pdf"
-
-    if not pdf_path.exists():
-        print("⚠️ PDF not found, skipping RAG")
-        return None
-
     try:
+        pdf_path = BASE_DIR / "ml-book.pdf"
+
+        if not pdf_path.exists():
+            print("⚠️ PDF not found")
+            return None
+
         loader = PyPDFLoader(str(pdf_path))
         documents = loader.load()
 
@@ -72,10 +70,16 @@ def get_vector_store():
         )
         docs = splitter.split_documents(documents)
 
+        print("Loading lightweight HuggingFace model...")
+
+        # 🔥 IMPORT INSIDE FUNCTION (VERY IMPORTANT)
+        from langchain_huggingface import HuggingFaceEmbeddings
+
         embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
+            model_name="sentence-transformers/paraphrase-MiniLM-L3-v2"  # SMALL MODEL ✅
         )
 
+        print("Creating FAISS index...")
         return FAISS.from_documents(docs, embeddings)
 
     except Exception as e:
