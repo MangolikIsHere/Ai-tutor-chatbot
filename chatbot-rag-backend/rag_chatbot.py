@@ -11,6 +11,8 @@ import logging
 # App Setup
 # =========================
 app = FastAPI()
+# Some hosts/loaders look for an `application` ASGI callable.
+application = app
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,21 +30,42 @@ load_dotenv(BASE_DIR / ".env")
 # =========================
 @lru_cache(maxsize=1)
 def get_gemini_client():
+    
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY not set")
 
-    from google import genai
-    return genai.Client(api_key=api_key)
+    # Prefer the new SDK when available, but support google-generativeai too.
+    try:
+        from google import genai
+
+        return {
+            "sdk": "google-genai",
+            "client": genai.Client(api_key=api_key),
+        }
+    except Exception:
+        import google.generativeai as genai
+
+        genai.configure(api_key=api_key)
+        return {
+            "sdk": "google-generativeai",
+            "client": genai.GenerativeModel("gemini-2.5-flash"),
+        }
 
 
 def ask_gemini(prompt: str) -> str:
-    client = get_gemini_client()
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-    return response.text or "No response"
+    gemini = get_gemini_client()
+
+    if gemini["sdk"] == "google-genai":
+        response = gemini["client"].models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
+        return response.text or "No response"
+
+    response = gemini["client"].generate_content(prompt)
+    text = getattr(response, "text", None)
+    return text or "No response"
 
 
 # =========================
@@ -164,4 +187,5 @@ if __name__ == "__main__":
     import uvicorn
 
     port = int(os.getenv("PORT", "10000"))
-    uvicorn.run("rag_chatbot:app", host="0.0.0.0", port=port)
+    # Pass the app object directly to avoid module import path issues.
+    uvicorn.run(app, host="127.0.0.1", port=port)
