@@ -52,12 +52,30 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
+def get_embeddings():
+    from langchain_huggingface import HuggingFaceEmbeddings
+
+    return HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+
+
+@lru_cache(maxsize=1)
 def get_vector_store():
     try:
         # Import RAG dependencies lazily so the web server can boot quickly on Render.
         from langchain_community.document_loaders import PyPDFLoader
         from langchain_community.vectorstores import FAISS
         from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+        index_dir = BASE_DIR / "faiss_index"
+        if index_dir.exists():
+            logger.info("Loading FAISS index from %s", index_dir)
+            return FAISS.load_local(
+                str(index_dir),
+                get_embeddings(),
+                allow_dangerous_deserialization=True,
+            )
 
         pdf_path = BASE_DIR / "ml-book.pdf"
 
@@ -74,17 +92,8 @@ def get_vector_store():
         )
         docs = splitter.split_documents(documents)
 
-        logger.info("Loading lightweight HuggingFace model...")
-
-        # 🔥 IMPORT INSIDE FUNCTION (VERY IMPORTANT)
-        from langchain_huggingface import HuggingFaceEmbeddings
-
-        embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/paraphrase-MiniLM-L3-v2"  # SMALL MODEL ✅
-        )
-
         logger.info("Creating FAISS index...")
-        return FAISS.from_documents(docs, embeddings)
+        return FAISS.from_documents(docs, get_embeddings())
 
     except Exception as e:
         logger.exception("RAG initialization failed: %s", e)
@@ -125,6 +134,11 @@ def home():
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
+
+
+@app.on_event("startup")
+def warm_rag_cache():
+    get_vector_store()
 
 
 @app.post("/chat")
