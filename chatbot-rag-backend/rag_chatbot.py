@@ -5,6 +5,7 @@ from functools import lru_cache
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+import logging
 
 # =========================
 # App Setup
@@ -47,18 +48,21 @@ def ask_gemini(prompt: str) -> str:
 # =========================
 # RAG Setup (HuggingFace SAFE)
 # =========================
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
 def get_vector_store():
     try:
+        # Import RAG dependencies lazily so the web server can boot quickly on Render.
+        from langchain_community.document_loaders import PyPDFLoader
+        from langchain_community.vectorstores import FAISS
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+
         pdf_path = BASE_DIR / "ml-book.pdf"
 
         if not pdf_path.exists():
-            print("⚠️ PDF not found")
+            logger.warning("PDF not found at %s", pdf_path)
             return None
 
         loader = PyPDFLoader(str(pdf_path))
@@ -70,7 +74,7 @@ def get_vector_store():
         )
         docs = splitter.split_documents(documents)
 
-        print("Loading lightweight HuggingFace model...")
+        logger.info("Loading lightweight HuggingFace model...")
 
         # 🔥 IMPORT INSIDE FUNCTION (VERY IMPORTANT)
         from langchain_huggingface import HuggingFaceEmbeddings
@@ -79,11 +83,11 @@ def get_vector_store():
             model_name="sentence-transformers/paraphrase-MiniLM-L3-v2"  # SMALL MODEL ✅
         )
 
-        print("Creating FAISS index...")
+        logger.info("Creating FAISS index...")
         return FAISS.from_documents(docs, embeddings)
 
     except Exception as e:
-        print("RAG ERROR:", e)
+        logger.exception("RAG initialization failed: %s", e)
         return None
 
 
@@ -118,6 +122,11 @@ def home():
     return {"message": "API running 🚀"}
 
 
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+
 @app.post("/chat")
 def chat(request: ChatRequest):
     try:
@@ -135,3 +144,10 @@ def chat(request: ChatRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.getenv("PORT", "10000"))
+    uvicorn.run("rag_chatbot:app", host="0.0.0.0", port=port)
