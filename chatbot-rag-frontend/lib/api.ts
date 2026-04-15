@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'https://ai-tutor-chatbot-6eid.onrender.com';
 const API_TIMEOUT = 30000; // 30 seconds
 
 export interface ChatRequest {
