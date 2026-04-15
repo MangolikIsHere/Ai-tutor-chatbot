@@ -16,7 +16,7 @@ application = app
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*","http://localhost:3000/"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -188,4 +188,4 @@ if __name__ == "__main__":
 
     port = int(os.getenv("PORT", "10000"))
     # Pass the app object directly to avoid module import path issues.
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    uvicorn.run(app, host="127.0.0.", port=port)
