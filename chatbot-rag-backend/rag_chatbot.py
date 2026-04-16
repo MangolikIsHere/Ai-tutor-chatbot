@@ -25,6 +25,17 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+# Disable local embedding-heavy RAG by default on Render to avoid OOM/timeouts.
+ENABLE_RAG = _env_flag("ENABLE_RAG", default=os.getenv("RENDER") is None)
+
 # =========================
 # Gemini Setup
 # =========================
@@ -76,6 +87,9 @@ logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def get_embeddings():
+    if not ENABLE_RAG:
+        raise RuntimeError("RAG disabled via ENABLE_RAG")
+
     from langchain_huggingface import HuggingFaceEmbeddings
 
     return HuggingFaceEmbeddings(
@@ -85,6 +99,10 @@ def get_embeddings():
 
 @lru_cache(maxsize=1)
 def get_vector_store():
+    if not ENABLE_RAG:
+        logger.info("RAG disabled; skipping vector store initialization")
+        return None
+
     try:
         # Import RAG dependencies lazily so the web server can boot quickly on Render.
         from langchain_community.document_loaders import PyPDFLoader
@@ -162,6 +180,10 @@ def healthz():
 @app.on_event("startup")
 def warm_rag_cache():
     """Warm RAG cache on startup, but don't block if index doesn't exist."""
+    if not ENABLE_RAG:
+        logger.info("RAG warmup skipped because ENABLE_RAG is false")
+        return
+
     import threading
     def _warm():
         try:
