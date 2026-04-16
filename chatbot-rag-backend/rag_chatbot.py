@@ -16,7 +16,7 @@ application = app
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*","http://localhost:3000/"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -111,7 +111,7 @@ def get_vector_store():
 
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
-            chunk_overlap=200
+            chunk_overlap=100
         )
         docs = splitter.split_documents(documents)
 
@@ -161,18 +161,34 @@ def healthz():
 
 @app.on_event("startup")
 def warm_rag_cache():
-    get_vector_store()
+    """Warm RAG cache on startup, but don't block if index doesn't exist."""
+    import threading
+    def _warm():
+        try:
+            get_vector_store()
+            logger.info("RAG cache warmed successfully")
+        except Exception as e:
+            logger.warning("RAG cache warming failed (non-blocking): %s", e)
+    
+    # Run in background thread so it doesn't block startup
+    thread = threading.Thread(target=_warm, daemon=True)
+    thread.start()
 
 
 @app.post("/chat")
 def chat(request: ChatRequest):
     try:
-        db = get_vector_store()
-
         context = "No context available"
-        if db:
-            docs = db.as_retriever().invoke(request.message)
-            context = " ".join(doc.page_content for doc in docs)
+        try:
+            db = get_vector_store()
+            if db:
+                # Limit to top 3 docs and truncate context to 1500 chars
+                docs = db.as_retriever(search_kwargs={"k": 3}).invoke(request.message)
+                raw_context = " ".join(doc.page_content for doc in docs)
+                context = raw_context[:1500]
+        except Exception as e:
+            logger.warning("RAG retrieval failed (continuing without context): %s", e)
+            pass
 
         prompt = build_prompt(context, request.message)
         answer = ask_gemini(prompt)
@@ -188,4 +204,4 @@ if __name__ == "__main__":
 
     port = int(os.getenv("PORT", "10000"))
     # Pass the app object directly to avoid module import path issues.
-    uvicorn.run(app, host="127.0.0.", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
