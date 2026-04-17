@@ -1,4 +1,5 @@
 import logging
+import time
 from functools import lru_cache
 
 from config import GOOGLE_API_KEY, GEMINI_MODEL
@@ -23,7 +24,7 @@ def get_gemini_client():
             "client": client
         }
 
-    except Exception:
+    except ImportError:
         import google.generativeai as genai
 
         genai.configure(api_key=GOOGLE_API_KEY)
@@ -37,6 +38,11 @@ def get_gemini_client():
 
 
 def ask_gemini(prompt: str) -> str:
+    if not prompt or not prompt.strip():
+        return "Please provide a message."
+
+    started = time.perf_counter()
+
     try:
         gemini = get_gemini_client()
 
@@ -46,13 +52,24 @@ def ask_gemini(prompt: str) -> str:
                 contents=prompt,
                 config={
                     "temperature": 0.3,
-                    "max_output_tokens": 350
+                    # Smaller output budget keeps average latency lower.
+                    "max_output_tokens": 220
                 }
             )
 
+            logger.info("Gemini response time: %.2f ms", (time.perf_counter() - started) * 1000)
+
             return response.text or "No response"
 
-        response = gemini["client"].generate_content(prompt)
+        response = gemini["client"].generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.3,
+                "max_output_tokens": 220,
+            },
+        )
+
+        logger.info("Gemini response time: %.2f ms", (time.perf_counter() - started) * 1000)
 
         return getattr(response, "text", None) or "No response"
 

@@ -1,4 +1,5 @@
 import logging
+import threading
 from functools import lru_cache
 
 from config import (
@@ -17,6 +18,8 @@ from prompts import ML_KEYWORDS
 logger = logging.getLogger(__name__)
 
 retriever = None
+_warm_lock = threading.Lock()
+_warm_attempted = False
 
 
 def is_ml_query(query: str) -> bool:
@@ -29,7 +32,11 @@ def get_embeddings():
     if not ENABLE_RAG:
         raise RuntimeError("RAG disabled")
 
-    from langchain_huggingface import HuggingFaceEmbeddings
+    try:
+        from langchain_huggingface import HuggingFaceEmbeddings
+    except ImportError:
+        # Backward-compatible fallback for environments without langchain-huggingface.
+        from langchain_community.embeddings import HuggingFaceEmbeddings
 
     logger.info("Loading embeddings...")
 
@@ -87,9 +94,15 @@ def get_vector_store():
 
 
 def warm_rag():
-    global retriever
+    global retriever, _warm_attempted
 
     try:
+        with _warm_lock:
+            if _warm_attempted and retriever is not None:
+                return
+
+            _warm_attempted = True
+
         db = get_vector_store()
 
         if db:
