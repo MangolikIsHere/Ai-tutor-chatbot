@@ -2,7 +2,7 @@ import logging
 import time
 from functools import lru_cache
 
-from config import GOOGLE_API_KEY, GEMINI_MODEL
+from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_MAX_OUTPUT_TOKENS
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +51,8 @@ def ask_gemini(prompt: str) -> str:
                 model=GEMINI_MODEL,
                 contents=prompt,
                 config={
-                    "temperature": 0.3,
-                    # Smaller output budget keeps average latency lower.
-                    "max_output_tokens": 220
+                    "temperature": 0.5,
+                    "max_output_tokens": GEMINI_MAX_OUTPUT_TOKENS
                 }
             )
 
@@ -64,8 +63,8 @@ def ask_gemini(prompt: str) -> str:
         response = gemini["client"].generate_content(
             prompt,
             generation_config={
-                "temperature": 0.3,
-                "max_output_tokens": 220,
+                "temperature": 0.5,
+                "max_output_tokens": GEMINI_MAX_OUTPUT_TOKENS,
             },
         )
 

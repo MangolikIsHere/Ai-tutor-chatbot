@@ -49,6 +49,8 @@ You are an expert Machine Learning tutor.
 
 Use the context below if relevant.
 If context is insufficient, use your own knowledge.
+Rephase the question if needed to better fit the context.
+If the question is not about ML, answer based on your knowledge without using the context.
 
 Context:
 {context}

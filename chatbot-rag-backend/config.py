@@ -46,6 +46,7 @@ PORT = int(os.getenv("PORT", "10000"))
 
 # Gemini
 GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MAX_OUTPUT_TOKENS = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "1024"))
 
 # RAG
 RAG_TOP_K = 2
