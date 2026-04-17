@@ -1,12 +1,13 @@
 import threading
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from config import ENABLE_RAG, PORT
+from config import ENABLE_RAG, PORT, LLM_REQUEST_TIMEOUT_SECONDS
 from rag import warm_rag, retrieve_context
 from llm import ask_gemini
 from prompts import build_rag_prompt, build_plain_prompt
@@ -73,7 +74,20 @@ async def chat(request: ChatRequest):
                 request.message
             )
 
-        answer = ask_gemini(prompt)
+        try:
+            answer = await asyncio.wait_for(
+                asyncio.to_thread(ask_gemini, prompt),
+                timeout=LLM_REQUEST_TIMEOUT_SECONDS,
+            )
+        except TimeoutError:
+            logger.warning(
+                "LLM call timed out after %ss",
+                LLM_REQUEST_TIMEOUT_SECONDS,
+            )
+            raise HTTPException(
+                status_code=504,
+                detail="Model response timed out. Please try again."
+            )
 
         return ChatResponse(
             response=answer,
