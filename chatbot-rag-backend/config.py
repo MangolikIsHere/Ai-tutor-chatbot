@@ -39,10 +39,10 @@ LLM_REQUEST_TIMEOUT_SECONDS = int(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "45")
 
 # ---------------------------------------------------------------------------
 # Embedding backend
-# "fastembed"  → ONNX runtime, no PyTorch, fastest cold-start  (default)
+# "fastembed"  → ONNX runtime backend (requires fastembed package)
 # "huggingface" → original sentence-transformers path
 # ---------------------------------------------------------------------------
-EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "fastembed").strip().lower()
+EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "huggingface").strip().lower()
 EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL",
     # fastembed model id            huggingface model id

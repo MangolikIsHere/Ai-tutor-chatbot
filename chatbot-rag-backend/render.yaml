@@ -21,6 +21,8 @@ services:
 
     # ── Environment variables ─────────────────────────────────────────────────
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
       - key: GROQ_API_KEY
         sync: false          # set secret in Render dashboard
 
@@ -35,9 +37,9 @@ services:
       - key: RAG_PREWARM_ON_STARTUP
         value: "false"
 
-      # Switch to fastembed to avoid pulling PyTorch (~2 GB) at build time
+      # Use sentence-transformers backend for compatibility
       - key: EMBEDDING_BACKEND
-        value: fastembed
+        value: huggingface
 
       - key: EMBEDDING_MODEL
         value: BAAI/bge-small-en-v1.5
@@ -48,10 +50,6 @@ services:
       # Hugging Face caches models here; persist across deploys with a disk
       - key: HF_HOME
         value: /opt/render/project/.cache/hf
-
-      # fastembed also respects this path for ONNX model cache
-      - key: FASTEMBED_CACHE_PATH
-        value: /opt/render/project/.cache/fastembed
 
     # ── Persistent disk (optional but strongly recommended) ──────────────────
     # Mount a disk so the FAISS index + model weights survive redeploys.

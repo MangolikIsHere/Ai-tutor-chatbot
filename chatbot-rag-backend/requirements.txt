@@ -7,17 +7,14 @@ pydantic>=2.7,<3.0
 # LLM provider
 groq>=0.9,<1.0
 
-# RAG stack — use the slim ONNX-runtime embeddings to avoid pulling full PyTorch
+# RAG stack
 langchain-community>=0.3,<1.0
 langchain-huggingface>=0.1,<1.0
 langchain-text-splitters>=0.3,<1.0
-
-# Lightweight ONNX-based embeddings (no torch/CUDA, ~50 MB vs ~2 GB)
-fastembed>=0.3,<1.0
 
 # Vector store & PDF
 faiss-cpu>=1.8,<2.0
 pypdf>=4.0,<6.0
 
-# Keep sentence-transformers as an optional fallback (comment out to save build time)
-# sentence-transformers>=2.7,<4.0
+# Embeddings runtime
+sentence-transformers>=2.7,<4.0
