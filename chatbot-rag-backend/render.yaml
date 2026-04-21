@@ -1,0 +1,62 @@
+# render.yaml — drop this in your repo root
+# Docs: https://render.com/docs/render-yaml-spec
+
+services:
+  - type: web
+    name: ml-rag-chatbot
+    runtime: python
+    region: oregon          # pick the region closest to your users
+
+    # ── Build ────────────────────────────────────────────────────────────────
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+
+    # ── Start ────────────────────────────────────────────────────────────────
+    # Use 1 worker — free tier has 512 MB RAM; multiple workers OOM with FAISS
+    startCommand: uvicorn rag_chatbot:app --host 0.0.0.0 --port $PORT --workers 1
+
+    # ── Health checks ────────────────────────────────────────────────────────
+    healthCheckPath: /healthz
+
+    # ── Environment variables ─────────────────────────────────────────────────
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false          # set secret in Render dashboard
+
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+
+      - key: ENABLE_RAG
+        value: "true"
+
+      # Keep this false on free tier — let warm-up happen on first request
+      # so Render's health-check passes instantly
+      - key: RAG_PREWARM_ON_STARTUP
+        value: "false"
+
+      # Switch to fastembed to avoid pulling PyTorch (~2 GB) at build time
+      - key: EMBEDDING_BACKEND
+        value: fastembed
+
+      - key: EMBEDDING_MODEL
+        value: BAAI/bge-small-en-v1.5
+
+      - key: LLM_REQUEST_TIMEOUT_SECONDS
+        value: "45"
+
+      # Hugging Face caches models here; persist across deploys with a disk
+      - key: HF_HOME
+        value: /opt/render/project/.cache/hf
+
+      # fastembed also respects this path for ONNX model cache
+      - key: FASTEMBED_CACHE_PATH
+        value: /opt/render/project/.cache/fastembed
+
+    # ── Persistent disk (optional but strongly recommended) ──────────────────
+    # Mount a disk so the FAISS index + model weights survive redeploys.
+    # Remove this block if you are on the free tier (disks require a paid plan).
+    disk:
+      name: rag-data
+      mountPath: /opt/render/project/src/faiss_index
+      sizeGB: 1

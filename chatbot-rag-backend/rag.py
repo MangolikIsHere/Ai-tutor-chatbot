@@ -4,140 +4,154 @@ from functools import lru_cache
 
 from config import (
     ENABLE_RAG,
+    EMBEDDING_BACKEND,
+    EMBEDDING_MODEL,
     PDF_PATH,
     FAISS_INDEX_DIR,
-    EMBEDDING_MODEL,
     RAG_TOP_K,
     RAG_CONTEXT_MAX_CHARS,
     CHUNK_SIZE,
-    CHUNK_OVERLAP
+    CHUNK_OVERLAP,
 )
-
 from prompts import ML_KEYWORDS
 
 logger = logging.getLogger(__name__)
 
-retriever = None
-_warm_lock = threading.Lock()
-_warm_attempted = False
+# ---------------------------------------------------------------------------
+# Module-level state
+# ---------------------------------------------------------------------------
+_retriever = None
+_init_lock = threading.Lock()
+_init_done = False
 
 
+# ---------------------------------------------------------------------------
+# Query gate
+# ---------------------------------------------------------------------------
 def is_ml_query(query: str) -> bool:
     q = query.lower()
-    return any(word in q for word in ML_KEYWORDS)
+    return any(kw in q for kw in ML_KEYWORDS)
 
 
+# ---------------------------------------------------------------------------
+# Embedding factory  (lazy, cached)
+# ---------------------------------------------------------------------------
 @lru_cache(maxsize=1)
-def get_embeddings():
-    if not ENABLE_RAG:
-        raise RuntimeError("RAG disabled")
+def _get_embeddings():
+    if EMBEDDING_BACKEND == "fastembed":
+        # ~50 MB ONNX model, no PyTorch required
+        try:
+            from langchain_community.embeddings import FastEmbedEmbeddings
 
+            logger.info("Loading FastEmbed embeddings (model=%s)", EMBEDDING_MODEL)
+            return FastEmbedEmbeddings(model_name=EMBEDDING_MODEL)
+        except ImportError:
+            logger.warning(
+                "fastembed not available, falling back to HuggingFaceEmbeddings"
+            )
+
+    # HuggingFace / sentence-transformers fallback
     try:
         from langchain_huggingface import HuggingFaceEmbeddings
     except ImportError:
-        # Backward-compatible fallback for environments without langchain-huggingface.
-        from langchain_community.embeddings import HuggingFaceEmbeddings
+        from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore
 
-    logger.info("Loading embeddings...")
-
-    return HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL
-    )
+    logger.info("Loading HuggingFace embeddings (model=%s)", EMBEDDING_MODEL)
+    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 
 
+# ---------------------------------------------------------------------------
+# Vector-store factory  (lazy, cached)
+# ---------------------------------------------------------------------------
 @lru_cache(maxsize=1)
-def get_vector_store():
+def _get_vector_store():
     if not ENABLE_RAG:
         return None
 
     try:
         from langchain_community.vectorstores import FAISS
-        from langchain_community.document_loaders import PyPDFLoader
-        from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-        embeddings = get_embeddings()
+        embeddings = _get_embeddings()
 
-        if FAISS_INDEX_DIR.exists():
-            logger.info("Loading FAISS index from disk")
-
+        # ── Load pre-built index from disk (fast path) ──────────────────────
+        if FAISS_INDEX_DIR.exists() and any(FAISS_INDEX_DIR.iterdir()):
+            logger.info("Loading FAISS index from %s", FAISS_INDEX_DIR)
             return FAISS.load_local(
                 str(FAISS_INDEX_DIR),
                 embeddings,
-                allow_dangerous_deserialization=True
+                allow_dangerous_deserialization=True,
             )
 
+        # ── Build index from PDF (slow path, first run only) ────────────────
         if not PDF_PATH.exists():
-            logger.warning("PDF not found")
-
+            logger.warning("PDF not found at %s and no FAISS index on disk", PDF_PATH)
             return None
 
-        logger.info("Creating FAISS index from PDF")
+        logger.info("Building FAISS index from %s …", PDF_PATH)
+
+        from langchain_community.document_loaders import PyPDFLoader
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
 
         docs = PyPDFLoader(str(PDF_PATH)).load()
-
-        splitter = RecursiveCharacterTextSplitter(
+        chunks = RecursiveCharacterTextSplitter(
             chunk_size=CHUNK_SIZE,
-            chunk_overlap=CHUNK_OVERLAP
-        )
-
-        chunks = splitter.split_documents(docs)
+            chunk_overlap=CHUNK_OVERLAP,
+        ).split_documents(docs)
 
         db = FAISS.from_documents(chunks, embeddings)
-
+        FAISS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
         db.save_local(str(FAISS_INDEX_DIR))
-
+        logger.info("FAISS index saved to %s", FAISS_INDEX_DIR)
         return db
 
-    except Exception as e:
-        logger.exception("Vector store failed: %s", e)
+    except Exception:
+        logger.exception("Failed to initialise vector store")
         return None
 
 
-def warm_rag():
-    global retriever, _warm_attempted
+# ---------------------------------------------------------------------------
+# Public warm-up helper  (called optionally at startup or on first request)
+# ---------------------------------------------------------------------------
+def warm_rag() -> None:
+    global _retriever, _init_done
+
+    with _init_lock:
+        if _init_done:
+            return
+        _init_done = True
 
     try:
-        with _warm_lock:
-            if _warm_attempted and retriever is not None:
-                return
-
-            _warm_attempted = True
-
-        db = get_vector_store()
-
-        if db:
-            retriever = db.as_retriever(
-                search_kwargs={"k": RAG_TOP_K}
-            )
-
-            logger.info("Retriever warmed")
-
-    except Exception as e:
-        logger.warning("Warmup failed: %s", e)
+        db = _get_vector_store()
+        if db is not None:
+            _retriever = db.as_retriever(search_kwargs={"k": RAG_TOP_K})
+            logger.info("RAG retriever ready")
+        else:
+            logger.warning("RAG retriever not available (no index or PDF)")
+    except Exception:
+        logger.exception("warm_rag failed")
 
 
-def retrieve_context(query: str):
-    global retriever
-
+# ---------------------------------------------------------------------------
+# Public retrieval entry-point
+# ---------------------------------------------------------------------------
+def retrieve_context(query: str) -> str | None:
     if not ENABLE_RAG:
         return None
 
     if not is_ml_query(query):
         return None
 
+    # Lazy init on first real request if prewarm was skipped
+    if _retriever is None:
+        warm_rag()
+
+    if _retriever is None:
+        return None
+
     try:
-        if retriever is None:
-            warm_rag()
-
-        if retriever is None:
-            return None
-
-        docs = retriever.invoke(query)
-
-        text = " ".join(doc.page_content for doc in docs)
-
-        return text[:RAG_CONTEXT_MAX_CHARS]
-
-    except Exception as e:
-        logger.warning("Retrieval failed: %s", e)
+        docs = _retriever.invoke(query)
+        text = " ".join(d.page_content for d in docs)
+        return text[:RAG_CONTEXT_MAX_CHARS] or None
+    except Exception:
+        logger.warning("Retrieval failed", exc_info=True)
         return None

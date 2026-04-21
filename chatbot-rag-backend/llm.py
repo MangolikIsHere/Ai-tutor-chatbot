@@ -1,52 +1,52 @@
 import os
+import logging
 from functools import lru_cache
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+logger = logging.getLogger(__name__)
 
 
-def _has_value(value: str) -> bool:
-    return bool(value)
+def _groq_api_key() -> str:
+    return os.getenv("GROQ_API_KEY", "").strip()
+
+
+def _groq_model() -> str:
+    return os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
 
 
 @lru_cache(maxsize=1)
-def get_client():
-    if not _has_value(GROQ_API_KEY):
+def _get_client():
+    """
+    Instantiated once and reused. Import is deferred so the module loads
+    instantly even if groq is not yet installed in the build phase.
+    """
+    key = _groq_api_key()
+    if not key:
         raise RuntimeError("GROQ_API_KEY is not set")
 
-    from groq import Groq
-    return Groq(api_key=GROQ_API_KEY)
+    from groq import Groq  # lazy import
+
+    logger.info("Creating Groq client (model=%s)", _groq_model())
+    return Groq(api_key=key)
 
 
 def ask_llm(prompt: str) -> str:
     if not prompt or not prompt.strip():
         return "Please provide a message."
 
-    try:
-        client = get_client()
+    client = _get_client()
 
+    try:
         response = client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt.strip()
-                }
-            ],
+            model=_groq_model(),
+            messages=[{"role": "user", "content": prompt.strip()}],
             temperature=0.4,
             max_tokens=1024,
         )
-
-        if not response.choices:
-            return "No response"
-
-        message = response.choices[0].message
-        content = getattr(message, "content", None)
-
-        if not content:
-            return "No response"
-
-        return content.strip()
-
     except Exception as e:
-        raise RuntimeError(f"Groq request failed: {str(e)}")
+        raise RuntimeError(f"Groq request failed: {e}") from e
+
+    if not response.choices:
+        return "No response"
+
+    content = getattr(response.choices[0].message, "content", None)
+    return (content or "No response").strip()

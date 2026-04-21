@@ -32,24 +32,21 @@ ML_KEYWORDS = [
     "linear algebra", "matrix", "vector",
     "pca", "dimensionality reduction",
 
-    # NLP/CV
+    # NLP / CV
     "nlp", "computer vision",
 
-    # Educational wording
+    # Educational phrasing
     "explain", "define", "difference between",
     "compare", "formula", "intuition",
     "advantages", "disadvantages",
-    "when to use", "interview question"
+    "when to use", "interview question",
 ]
 
 
 def build_rag_prompt(context: str, query: str) -> str:
-    return f"""
-You are an expert Machine Learning tutor.
+    return f"""You are an expert Machine Learning tutor.
 
-Use the context below if relevant.
-If context is insufficient, use your own knowledge.
-Rephase the question if needed to better fit the context.
+Use the context below if relevant. If context is insufficient, rely on your own knowledge.
 If the question is not about ML, answer based on your knowledge without using the context.
 
 Context:
@@ -58,16 +55,13 @@ Context:
 Question:
 {query}
 
-Give a clear concise answer with examples if useful.
-"""
+Give a clear, concise answer with examples where useful."""
 
 
 def build_plain_prompt(query: str) -> str:
-    return f"""
-You are a helpful assistant.
+    return f"""You are a helpful assistant.
 
 Question:
 {query}
 
-Give a clear concise answer.
-"""
+Give a clear, concise answer."""
