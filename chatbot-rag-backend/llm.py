@@ -1,77 +1,52 @@
-import logging
-import time
+import os
 from functools import lru_cache
 
-from config import GOOGLE_API_KEY, GEMINI_MODEL, GEMINI_MAX_OUTPUT_TOKENS
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
 
-logger = logging.getLogger(__name__)
+
+def _has_value(value: str) -> bool:
+    return bool(value)
 
 
 @lru_cache(maxsize=1)
-def get_gemini_client():
-    if not GOOGLE_API_KEY:
-        raise RuntimeError("GOOGLE_API_KEY not set")
+def get_client():
+    if not _has_value(GROQ_API_KEY):
+        raise RuntimeError("GROQ_API_KEY is not set")
 
-    try:
-        from google import genai
-
-        client = genai.Client(api_key=GOOGLE_API_KEY)
-
-        logger.info("Using google-genai SDK")
-
-        return {
-            "sdk": "google-genai",
-            "client": client
-        }
-
-    except ImportError:
-        import google.generativeai as genai
-
-        genai.configure(api_key=GOOGLE_API_KEY)
-
-        logger.info("Using google-generativeai SDK")
-
-        return {
-            "sdk": "legacy",
-            "client": genai.GenerativeModel(GEMINI_MODEL)
-        }
+    from groq import Groq
+    return Groq(api_key=GROQ_API_KEY)
 
 
-def ask_gemini(prompt: str) -> str:
+def ask_llm(prompt: str) -> str:
     if not prompt or not prompt.strip():
         return "Please provide a message."
 
-    started = time.perf_counter()
-
     try:
-        gemini = get_gemini_client()
+        client = get_client()
 
-        if gemini["sdk"] == "google-genai":
-            response = gemini["client"].models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt,
-                config={
-                    "temperature": 0.5,
-                    "max_output_tokens": GEMINI_MAX_OUTPUT_TOKENS
+        response = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt.strip()
                 }
-            )
-
-            logger.info("Gemini response time: %.2f ms", (time.perf_counter() - started) * 1000)
-
-            return response.text or "No response"
-
-        response = gemini["client"].generate_content(
-            prompt,
-            generation_config={
-                "temperature": 0.5,
-                "max_output_tokens": GEMINI_MAX_OUTPUT_TOKENS,
-            },
+            ],
+            temperature=0.4,
+            max_tokens=1024,
         )
 
-        logger.info("Gemini response time: %.2f ms", (time.perf_counter() - started) * 1000)
+        if not response.choices:
+            return "No response"
 
-        return getattr(response, "text", None) or "No response"
+        message = response.choices[0].message
+        content = getattr(message, "content", None)
+
+        if not content:
+            return "No response"
+
+        return content.strip()
 
     except Exception as e:
-        logger.exception("Gemini failed: %s", e)
-        return "Sorry, I could not generate a response right now."
+        raise RuntimeError(f"Groq request failed: {str(e)}")
