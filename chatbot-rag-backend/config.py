@@ -26,14 +26,25 @@ def env_flag(name: str, default=False):
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "gpt-oss-120b")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+
+GROQ_MODEL = os.getenv(
+    "GROQ_MODEL",
+    "llama-3.3-70b-versatile"
+).strip()
 
 ENABLE_RAG = env_flag("ENABLE_RAG", True)
-RAG_PREWARM_ON_STARTUP = env_flag("RAG_PREWARM_ON_STARTUP", True)
+
+RAG_PREWARM_ON_STARTUP = env_flag(
+    "RAG_PREWARM_ON_STARTUP",
+    False
+)
 
 PORT = int(os.getenv("PORT", "10000"))
-LLM_REQUEST_TIMEOUT_SECONDS = int(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "45"))
+
+LLM_REQUEST_TIMEOUT_SECONDS = int(
+    os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "45")
+)
 
 RAG_TOP_K = 2
 RAG_CONTEXT_MAX_CHARS = 1200
