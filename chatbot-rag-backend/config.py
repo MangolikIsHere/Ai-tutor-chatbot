@@ -34,6 +34,7 @@ RAG_PREWARM_ON_STARTUP = env_flag("RAG_PREWARM_ON_STARTUP", False)
 
 PORT = int(os.getenv("PORT", "10000"))
 LLM_REQUEST_TIMEOUT_SECONDS = int(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "45"))
+RAG_RETRIEVAL_TIMEOUT_SECONDS = int(os.getenv("RAG_RETRIEVAL_TIMEOUT_SECONDS", "8"))
 
 # FastEmbed model and cache
 EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "fastembed").strip().lower()

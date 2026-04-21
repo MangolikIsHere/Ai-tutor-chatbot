@@ -13,6 +13,7 @@ from config import (
     LLM_REQUEST_TIMEOUT_SECONDS,
     PORT,
     RAG_PREWARM_ON_STARTUP,
+    RAG_RETRIEVAL_TIMEOUT_SECONDS,
 )
 from llm import ask_llm
 from prompts import build_plain_prompt, build_rag_prompt
@@ -94,7 +95,26 @@ async def readyz():
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
-        context = retrieve_context(request.message)
+        context = None
+
+        if ENABLE_RAG:
+            try:
+                # Time-bound retrieval so first-time model/index load does not
+                # hold the HTTP request long enough to trigger a 502 upstream.
+                context = await asyncio.wait_for(
+                    asyncio.to_thread(retrieve_context, request.message),
+                    timeout=RAG_RETRIEVAL_TIMEOUT_SECONDS,
+                )
+            except TimeoutError:
+                logger.warning(
+                    "RAG retrieval timed out after %ss; continuing without context",
+                    RAG_RETRIEVAL_TIMEOUT_SECONDS,
+                )
+                context = None
+            except Exception:
+                logger.warning("RAG retrieval failed; continuing without context", exc_info=True)
+                context = None
+
         prompt = (
             build_rag_prompt(context, request.message)
             if context
