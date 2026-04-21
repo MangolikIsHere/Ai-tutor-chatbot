@@ -4,7 +4,6 @@ from functools import lru_cache
 
 from config import (
     ENABLE_RAG,
-    EMBEDDING_BACKEND,
     EMBEDDING_MODEL,
     PDF_PATH,
     FAISS_INDEX_DIR,
@@ -17,52 +16,36 @@ from prompts import ML_KEYWORDS
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Module-level state
-# ---------------------------------------------------------------------------
 _retriever = None
 _init_lock = threading.Lock()
 _init_done = False
 
 
-# ---------------------------------------------------------------------------
-# Query gate
-# ---------------------------------------------------------------------------
 def is_ml_query(query: str) -> bool:
     q = query.lower()
     return any(kw in q for kw in ML_KEYWORDS)
 
 
-# ---------------------------------------------------------------------------
-# Embedding factory  (lazy, cached)
-# ---------------------------------------------------------------------------
 @lru_cache(maxsize=1)
 def _get_embeddings():
-    if EMBEDDING_BACKEND == "fastembed":
-        # ~50 MB ONNX model, no PyTorch required
-        try:
-            from langchain_community.embeddings import FastEmbedEmbeddings
-
-            logger.info("Loading FastEmbed embeddings (model=%s)", EMBEDDING_MODEL)
-            return FastEmbedEmbeddings(model_name=EMBEDDING_MODEL)
-        except ImportError:
-            logger.warning(
-                "fastembed not available, falling back to HuggingFaceEmbeddings"
-            )
-
-    # HuggingFace / sentence-transformers fallback
+    """
+    Uses fastembed (ONNX) — no PyTorch, ~50 MB RAM.
+    Falls back to a simple TF-IDF-style approach if fastembed fails.
+    """
     try:
-        from langchain_huggingface import HuggingFaceEmbeddings
-    except ImportError:
-        from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore
+        # Correct import path for fastembed via langchain
+        from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+        logger.info("Using FastEmbed (model=%s)", EMBEDDING_MODEL)
+        return FastEmbedEmbeddings(model_name=EMBEDDING_MODEL)
+    except Exception as e:
+        logger.error(
+            "FastEmbed failed: %s — RAG will be disabled. "
+            "Ensure 'fastembed' is installed and langchain-huggingface is NOT installed.",
+            e,
+        )
+        raise
 
-    logger.info("Loading HuggingFace embeddings (model=%s)", EMBEDDING_MODEL)
-    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 
-
-# ---------------------------------------------------------------------------
-# Vector-store factory  (lazy, cached)
-# ---------------------------------------------------------------------------
 @lru_cache(maxsize=1)
 def _get_vector_store():
     if not ENABLE_RAG:
@@ -73,7 +56,7 @@ def _get_vector_store():
 
         embeddings = _get_embeddings()
 
-        # ── Load pre-built index from disk (fast path) ──────────────────────
+        # ── Fast path: load pre-built index ────────────────────────────────
         if FAISS_INDEX_DIR.exists() and any(FAISS_INDEX_DIR.iterdir()):
             logger.info("Loading FAISS index from %s", FAISS_INDEX_DIR)
             return FAISS.load_local(
@@ -82,13 +65,12 @@ def _get_vector_store():
                 allow_dangerous_deserialization=True,
             )
 
-        # ── Build index from PDF (slow path, first run only) ────────────────
+        # ── Slow path: build from PDF (first run only) ──────────────────────
         if not PDF_PATH.exists():
-            logger.warning("PDF not found at %s and no FAISS index on disk", PDF_PATH)
+            logger.warning("No PDF and no FAISS index — RAG disabled")
             return None
 
-        logger.info("Building FAISS index from %s …", PDF_PATH)
-
+        logger.info("Building FAISS index from PDF (first run)...")
         from langchain_community.document_loaders import PyPDFLoader
         from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -104,14 +86,14 @@ def _get_vector_store():
         logger.info("FAISS index saved to %s", FAISS_INDEX_DIR)
         return db
 
+    except MemoryError:
+        logger.error("OOM while loading vector store")
+        return None
     except Exception:
         logger.exception("Failed to initialise vector store")
         return None
 
 
-# ---------------------------------------------------------------------------
-# Public warm-up helper  (called optionally at startup or on first request)
-# ---------------------------------------------------------------------------
 def warm_rag() -> None:
     global _retriever, _init_done
 
@@ -126,14 +108,11 @@ def warm_rag() -> None:
             _retriever = db.as_retriever(search_kwargs={"k": RAG_TOP_K})
             logger.info("RAG retriever ready")
         else:
-            logger.warning("RAG retriever not available (no index or PDF)")
+            logger.warning("RAG retriever unavailable")
     except Exception:
         logger.exception("warm_rag failed")
 
 
-# ---------------------------------------------------------------------------
-# Public retrieval entry-point
-# ---------------------------------------------------------------------------
 def retrieve_context(query: str) -> str | None:
     if not ENABLE_RAG:
         return None
@@ -141,7 +120,6 @@ def retrieve_context(query: str) -> str | None:
     if not is_ml_query(query):
         return None
 
-    # Lazy init on first real request if prewarm was skipped
     if _retriever is None:
         warm_rag()
 

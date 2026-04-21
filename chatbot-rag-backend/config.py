@@ -30,26 +30,15 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
 
 ENABLE_RAG = env_flag("ENABLE_RAG", True)
-
-# Disabled by default — prewarm adds cold-start latency on Render free tier
 RAG_PREWARM_ON_STARTUP = env_flag("RAG_PREWARM_ON_STARTUP", False)
 
 PORT = int(os.getenv("PORT", "10000"))
 LLM_REQUEST_TIMEOUT_SECONDS = int(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "45"))
 
-# ---------------------------------------------------------------------------
-# Embedding backend
-# "fastembed"  → ONNX runtime backend (requires fastembed package)
-# "huggingface" → original sentence-transformers path
-# ---------------------------------------------------------------------------
-EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "huggingface").strip().lower()
-EMBEDDING_MODEL = os.getenv(
-    "EMBEDDING_MODEL",
-    # fastembed model id            huggingface model id
-    "BAAI/bge-small-en-v1.5"       # same name works for both backends
-).strip()
+# fastembed ONNX model — no PyTorch required
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5").strip()
 
 RAG_TOP_K = 2
-RAG_CONTEXT_MAX_CHARS = 1200
-CHUNK_SIZE = 900
-CHUNK_OVERLAP = 100
+RAG_CONTEXT_MAX_CHARS = 1000
+CHUNK_SIZE = 500
+CHUNK_OVERLAP = 50
