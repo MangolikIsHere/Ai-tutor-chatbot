@@ -4,7 +4,9 @@ from functools import lru_cache
 
 from config import (
     ENABLE_RAG,
+    EMBEDDING_BACKEND,
     EMBEDDING_MODEL,
+    FASTEMBED_CACHE_PATH,
     PDF_PATH,
     FAISS_INDEX_DIR,
     RAG_TOP_K,
@@ -13,6 +15,7 @@ from config import (
     CHUNK_OVERLAP,
 )
 from prompts import ML_KEYWORDS
+from langchain_core.embeddings import Embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -26,24 +29,29 @@ def is_ml_query(query: str) -> bool:
     return any(kw in q for kw in ML_KEYWORDS)
 
 
+class FastEmbedLangChainEmbeddings(Embeddings):
+    def __init__(self, model_name: str, cache_dir: str | None = None):
+        from fastembed import TextEmbedding
+
+        self._model = TextEmbedding(model_name=model_name, cache_dir=cache_dir)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [embedding.tolist() for embedding in self._model.embed(texts)]
+
+    def embed_query(self, text: str) -> list[float]:
+        return list(self._model.query_embed([text]))[0].tolist()
+
+
 @lru_cache(maxsize=1)
 def _get_embeddings():
-    """
-    Uses fastembed (ONNX) — no PyTorch, ~50 MB RAM.
-    Falls back to a simple TF-IDF-style approach if fastembed fails.
-    """
-    try:
-        # Correct import path for fastembed via langchain
-        from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
-        logger.info("Using FastEmbed (model=%s)", EMBEDDING_MODEL)
-        return FastEmbedEmbeddings(model_name=EMBEDDING_MODEL)
-    except Exception as e:
-        logger.error(
-            "FastEmbed failed: %s — RAG will be disabled. "
-            "Ensure 'fastembed' is installed and langchain-huggingface is NOT installed.",
-            e,
-        )
-        raise
+    if EMBEDDING_BACKEND != "fastembed":
+        raise RuntimeError(f"Unsupported EMBEDDING_BACKEND: {EMBEDDING_BACKEND}")
+
+    logger.info("Loading FastEmbed embeddings (model=%s)", EMBEDDING_MODEL)
+    return FastEmbedLangChainEmbeddings(
+        model_name=EMBEDDING_MODEL,
+        cache_dir=FASTEMBED_CACHE_PATH,
+    )
 
 
 @lru_cache(maxsize=1)
@@ -56,7 +64,7 @@ def _get_vector_store():
 
         embeddings = _get_embeddings()
 
-        # ── Fast path: load pre-built index ────────────────────────────────
+        # Fast path: pre-built index already on disk
         if FAISS_INDEX_DIR.exists() and any(FAISS_INDEX_DIR.iterdir()):
             logger.info("Loading FAISS index from %s", FAISS_INDEX_DIR)
             return FAISS.load_local(
@@ -65,7 +73,7 @@ def _get_vector_store():
                 allow_dangerous_deserialization=True,
             )
 
-        # ── Slow path: build from PDF (first run only) ──────────────────────
+        # Slow path: build from PDF (first run only)
         if not PDF_PATH.exists():
             logger.warning("No PDF and no FAISS index — RAG disabled")
             return None
@@ -87,7 +95,7 @@ def _get_vector_store():
         return db
 
     except MemoryError:
-        logger.error("OOM while loading vector store")
+        logger.error("OOM while loading vector store — free tier RAM exceeded")
         return None
     except Exception:
         logger.exception("Failed to initialise vector store")

@@ -25,6 +25,8 @@ services:
         value: "true"
       - key: RAG_PREWARM_ON_STARTUP
         value: "false"
+      - key: EMBEDDING_BACKEND
+        value: fastembed
       - key: EMBEDDING_MODEL
         value: BAAI/bge-small-en-v1.5
       - key: LLM_REQUEST_TIMEOUT_SECONDS

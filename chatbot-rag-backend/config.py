@@ -35,8 +35,10 @@ RAG_PREWARM_ON_STARTUP = env_flag("RAG_PREWARM_ON_STARTUP", False)
 PORT = int(os.getenv("PORT", "10000"))
 LLM_REQUEST_TIMEOUT_SECONDS = int(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "45"))
 
-# fastembed ONNX model — no PyTorch required
+# FastEmbed model and cache
+EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "fastembed").strip().lower()
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5").strip()
+FASTEMBED_CACHE_PATH = os.getenv("FASTEMBED_CACHE_PATH", "").strip() or None
 
 RAG_TOP_K = 2
 RAG_CONTEXT_MAX_CHARS = 1000
