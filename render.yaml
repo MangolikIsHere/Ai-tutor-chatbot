@@ -23,11 +23,9 @@ services:
         value: "true"
       - key: RAG_PREWARM_ON_STARTUP
         value: "false"
-      - key: EMBEDDING_BACKEND
-        value: huggingface
       - key: EMBEDDING_MODEL
         value: BAAI/bge-small-en-v1.5
       - key: LLM_REQUEST_TIMEOUT_SECONDS
         value: "45"
-      - key: HF_HOME
-        value: /opt/render/project/.cache/hf
+      - key: FASTEMBED_CACHE_PATH
+        value: /opt/render/project/.cache/fastembed
