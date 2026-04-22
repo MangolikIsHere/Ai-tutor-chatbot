@@ -130,10 +130,25 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (stored) setSessionId(stored);
   }, []);
 
-  // Load persisted chats on mount.
+  // Load persisted chats on mount and force a new chat for a clean slate.
   useEffect(() => {
-    syncChats();
-  }, [syncChats]);
+    if (typeof window === 'undefined') return;
+    const stored = getAllChats();
+    const topChat = stored[0];
+
+    // If the most recent chat is already empty, just use it.
+    // Otherwise, create a fresh one. This prevents spamming empty chats on reload.
+    if (topChat && topChat.messages.length === 0) {
+      setChats(stored);
+      setCurrentChat(topChat);
+      setSessionId(null);
+    } else {
+      const newChat = createChat('New Chat');
+      setChats(getAllChats());
+      setCurrentChat(newChat);
+      setSessionId(null);
+    }
+  }, []);
 
   // Keep localStorage synchronized with the active backend session.
   useEffect(() => {
