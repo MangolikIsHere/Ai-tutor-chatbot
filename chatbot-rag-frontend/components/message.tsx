@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Copy, Check, User, Sparkles } from 'lucide-react';
@@ -12,6 +13,8 @@ interface MessageProps {
   role: 'user' | 'assistant';
   timestamp: number;
 }
+
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 // ─── Code Block ──────────────────────────────────────────────────────────────
 
@@ -33,32 +36,55 @@ function CodeBlock({ language, codeStr }: { language: string; codeStr: string })
         boxShadow: '0 4px 20px rgba(0,0,0,0.22)',
       }}
     >
-      {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-2.5"
         style={{ background: '#111119', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
       >
         <span
           className="font-mono font-semibold uppercase"
-          style={{ fontSize: '10px', letterSpacing: '0.09em', color: 'rgba(255,255,255,0.30)' }}
+          style={{ fontSize: '10px', letterSpacing: '0.09em', color: 'rgba(255,255,255,0.28)' }}
         >
           {language || 'code'}
         </span>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleCopy}
-          className="h-6 px-2.5 gap-1.5 rounded-lg transition-all"
-          style={{
-            fontSize: '11px',
-            color: copied ? 'rgb(52,211,153)' : 'rgba(255,255,255,0.35)',
-          }}
-        >
-          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-          {copied ? 'Copied!' : 'Copy'}
-        </Button>
+        <motion.div whileTap={{ scale: 0.92 }}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleCopy}
+            className="h-6 px-2.5 gap-1.5 rounded-lg transition-colors"
+            style={{
+              fontSize: '11px',
+              color: copied ? 'rgb(52,211,153)' : 'rgba(255,255,255,0.35)',
+            }}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {copied ? (
+                <motion.span
+                  key="check"
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.6, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex items-center gap-1.5"
+                >
+                  <Check className="w-3 h-3" /> Copied!
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="copy"
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.6, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex items-center gap-1.5"
+                >
+                  <Copy className="w-3 h-3" /> Copy
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </Button>
+        </motion.div>
       </div>
-      {/* Body */}
       <pre
         className="overflow-x-auto px-4 py-4"
         style={{ fontSize: '13px', lineHeight: '1.75', color: '#c9d1d9' }}
@@ -86,12 +112,9 @@ function UserAvatar() {
   return (
     <div
       className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
-      style={{
-        background: 'var(--surface-02)',
-        border: '1px solid var(--border)',
-      }}
+      style={{ background: 'var(--surface-02)', border: '1px solid var(--border)' }}
     >
-      <User className="w-3.5 h-3.5" style={{ color: 'var(--foreground)', opacity: 0.55 }} />
+      <User className="w-3.5 h-3.5" style={{ color: 'var(--foreground)', opacity: 0.50 }} />
     </div>
   );
 }
@@ -114,11 +137,14 @@ export function Message({ content, role, timestamp }: MessageProps) {
   }, [content]);
 
   return (
-    <div
+    <motion.div
       className={cn(
-        'group/msg flex gap-3 px-4 sm:px-6 py-2 max-w-[780px] mx-auto msg-animate',
+        'group/msg flex gap-3 px-4 sm:px-6 py-2 max-w-[780px] mx-auto',
         isUser ? 'justify-end' : 'justify-start'
       )}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: EASE }}
     >
       {!isUser && <AIAvatar />}
 
@@ -131,7 +157,7 @@ export function Message({ content, role, timestamp }: MessageProps) {
         )}
       >
         {/* Bubble */}
-        <div
+        <motion.div
           className={cn(
             'relative px-4 py-3 break-words rounded-2xl',
             isUser ? 'rounded-tr-md btn-gradient text-white' : 'rounded-tl-md'
@@ -148,6 +174,10 @@ export function Message({ content, role, timestamp }: MessageProps) {
                   boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                 }),
           }}
+          whileHover={!isUser ? {
+            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          } : {}}
+          transition={{ duration: 0.15 }}
         >
           {isUser ? (
             <p className="whitespace-pre-wrap">{content}</p>
@@ -213,37 +243,19 @@ export function Message({ content, role, timestamp }: MessageProps) {
                     return <li style={{ lineHeight: '1.7' }}>{children}</li>;
                   },
                   h1({ children }) {
-                    return (
-                      <h1 className="mt-5 mb-2 first:mt-0" style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.026em' }}>
-                        {children}
-                      </h1>
-                    );
+                    return <h1 className="mt-5 mb-2 first:mt-0" style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.026em' }}>{children}</h1>;
                   },
                   h2({ children }) {
-                    return (
-                      <h2 className="mt-4 mb-1.5 first:mt-0" style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '-0.020em' }}>
-                        {children}
-                      </h2>
-                    );
+                    return <h2 className="mt-4 mb-1.5 first:mt-0" style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '-0.020em' }}>{children}</h2>;
                   },
                   h3({ children }) {
-                    return (
-                      <h3 className="mt-3 mb-1 first:mt-0" style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.015em' }}>
-                        {children}
-                      </h3>
-                    );
+                    return <h3 className="mt-3 mb-1 first:mt-0" style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.015em' }}>{children}</h3>;
                   },
                   blockquote({ children }) {
                     return (
                       <blockquote
                         className="my-3 pl-3.5 italic"
-                        style={{
-                          borderLeft: '2.5px solid var(--primary)',
-                          opacity: 0.75,
-                          fontSize: '13.5px',
-                          lineHeight: '1.7',
-                          color: 'var(--muted-foreground)',
-                        }}
+                        style={{ borderLeft: '2.5px solid var(--primary)', opacity: 0.75, fontSize: '13.5px', lineHeight: '1.7', color: 'var(--muted-foreground)' }}
                       >
                         {children}
                       </blockquote>
@@ -255,9 +267,7 @@ export function Message({ content, role, timestamp }: MessageProps) {
                   table({ children }) {
                     return (
                       <div className="overflow-x-auto my-4 rounded-xl" style={{ border: '1px solid var(--border)' }}>
-                        <table style={{ fontSize: '12.5px', borderCollapse: 'collapse', width: '100%' }}>
-                          {children}
-                        </table>
+                        <table style={{ fontSize: '12.5px', borderCollapse: 'collapse', width: '100%' }}>{children}</table>
                       </div>
                     );
                   },
@@ -266,18 +276,7 @@ export function Message({ content, role, timestamp }: MessageProps) {
                   },
                   th({ children }) {
                     return (
-                      <th
-                        className="text-left"
-                        style={{
-                          padding: '10px 16px',
-                          fontWeight: 600,
-                          fontSize: '12px',
-                          letterSpacing: '-0.010em',
-                          borderBottom: '1px solid var(--border)',
-                          color: 'var(--foreground)',
-                          opacity: 0.80,
-                        }}
-                      >
+                      <th className="text-left" style={{ padding: '10px 16px', fontWeight: 600, fontSize: '12px', letterSpacing: '-0.010em', borderBottom: '1px solid var(--border)', color: 'var(--foreground)', opacity: 0.80 }}>
                         {children}
                       </th>
                     );
@@ -290,11 +289,7 @@ export function Message({ content, role, timestamp }: MessageProps) {
                     );
                   },
                   strong({ children }) {
-                    return (
-                      <strong style={{ fontWeight: 600, color: 'var(--foreground)' }}>
-                        {children}
-                      </strong>
-                    );
+                    return <strong style={{ fontWeight: 600, color: 'var(--foreground)' }}>{children}</strong>;
                   },
                 }}
               >
@@ -302,7 +297,7 @@ export function Message({ content, role, timestamp }: MessageProps) {
               </ReactMarkdown>
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Meta row */}
         <div
@@ -312,38 +307,53 @@ export function Message({ content, role, timestamp }: MessageProps) {
           )}
         >
           <time
-            style={{
-              fontSize: '11px',
-              color: 'var(--muted-foreground)',
-              opacity: 0.45,
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.008em',
-            }}
+            style={{ fontSize: '11px', color: 'var(--muted-foreground)', opacity: 0.45, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.008em' }}
           >
             {timeStr}
           </time>
           {!isUser && (
-            <button
+            <motion.button
               onClick={handleCopyMessage}
               aria-label="Copy message"
-              className={cn(
-                'flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-150',
-                'opacity-0 group-hover/msg:opacity-100',
-              )}
+              className="flex items-center gap-1 rounded-md px-1.5 py-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150"
               style={{
                 fontSize: '11px',
                 color: msgCopied ? 'rgb(52,211,153)' : 'var(--muted-foreground)',
                 background: msgCopied ? 'rgba(52,211,153,0.10)' : 'transparent',
               }}
+              whileTap={{ scale: 0.88 }}
             >
-              {msgCopied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
-              {msgCopied ? 'Copied' : 'Copy'}
-            </button>
+              <AnimatePresence mode="wait" initial={false}>
+                {msgCopied ? (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0.7, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.7, opacity: 0 }}
+                    transition={{ duration: 0.14 }}
+                    className="flex items-center gap-1"
+                  >
+                    <Check className="w-2.5 h-2.5" /> Copied
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="copy"
+                    initial={{ scale: 0.7, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.7, opacity: 0 }}
+                    transition={{ duration: 0.14 }}
+                    className="flex items-center gap-1"
+                  >
+                    <Copy className="w-2.5 h-2.5" /> Copy
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
           )}
         </div>
       </div>
 
       {isUser && <UserAvatar />}
-    </div>
+    </motion.div>
   );
 }

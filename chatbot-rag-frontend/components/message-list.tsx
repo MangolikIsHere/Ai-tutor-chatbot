@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Message } from './message';
 import { useChatContext } from '@/lib/chat-context';
 import { Sparkles, BookOpen, Code2, BrainCircuit, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Message } from './message';
 
 // ─── Suggestion chips ────────────────────────────────────────────────────────
 
@@ -35,11 +36,41 @@ const SUGGESTIONS = [
   },
 ] as const;
 
+// ─── Animation presets ────────────────────────────────────────────────────────
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+const welcomeContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.10 } },
+};
+
+const welcomeItem = {
+  hidden:  { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.40, ease: EASE } },
+};
+
+const chipItem = {
+  hidden:  { opacity: 0, y: 10, scale: 0.97 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.32, ease: EASE, delay: 0.28 + i * 0.06 },
+  }),
+};
+
 // ─── Typing indicator ─────────────────────────────────────────────────────────
 
 function TypingIndicator() {
   return (
-    <div className="flex gap-3 px-4 sm:px-6 py-2 max-w-[780px] mx-auto w-full msg-animate">
+    <motion.div
+      className="flex gap-3 px-4 sm:px-6 py-2 max-w-[780px] mx-auto w-full"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 4 }}
+      transition={{ duration: 0.18, ease: EASE }}
+    >
       <div
         className="flex-shrink-0 w-7 h-7 rounded-full btn-gradient flex items-center justify-center mt-0.5"
         style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}
@@ -48,16 +79,13 @@ function TypingIndicator() {
       </div>
       <div
         className="rounded-2xl rounded-tl-md px-4 py-3 flex items-center gap-1.5"
-        style={{
-          background: 'var(--card)',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        }}
+        style={{ background: 'var(--card)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
       >
         <span className="typing-dot" />
         <span className="typing-dot" />
         <span className="typing-dot" />
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -65,73 +93,90 @@ function TypingIndicator() {
 
 function WelcomeScreen({ onSend }: { onSend: (prompt: string) => void }) {
   return (
-    <div className="h-full flex flex-col items-center justify-center px-5 py-16 text-center select-none">
+    <motion.div
+      className="h-full flex flex-col items-center justify-center px-5 py-16 text-center select-none"
+      variants={welcomeContainer}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Hero icon */}
-      <div
-        className="relative mb-8 fade-up"
-        style={{ animationDelay: '0ms' }}
-      >
+      <motion.div className="relative mb-8" variants={welcomeItem}>
         <div
           className="absolute inset-0 rounded-[28px] btn-gradient opacity-20 blur-2xl scale-[2]"
           aria-hidden
         />
-        <div className="relative w-16 h-16 rounded-[22px] btn-gradient flex items-center justify-center shadow-lg">
+        <motion.div
+          className="relative w-16 h-16 rounded-[22px] btn-gradient flex items-center justify-center shadow-lg"
+          whileHover={{ scale: 1.05, rotate: 4 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+        >
           <Sparkles className="w-7 h-7 text-white" />
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Headline */}
-      <h1
-        className="text-[28px] sm:text-[34px] font-semibold tracking-[-0.035em] text-foreground mb-3 fade-up"
-        style={{ animationDelay: '60ms' }}
+      <motion.h1
+        className="text-[28px] sm:text-[34px] font-semibold text-foreground mb-3"
+        style={{ letterSpacing: '-0.035em' }}
+        variants={welcomeItem}
       >
         How can I help you today?
-      </h1>
+      </motion.h1>
 
       {/* Subtitle */}
-      <p
-        className="text-[15px] max-w-[340px] sm:max-w-[400px] leading-[1.65] mb-10 fade-up"
-        style={{
-          color: 'var(--muted-foreground)',
-          opacity: 0.75,
-          animationDelay: '110ms',
-        }}
+      <motion.p
+        className="text-[15px] max-w-[340px] sm:max-w-[400px] leading-[1.65] mb-10"
+        style={{ color: 'var(--muted-foreground)', opacity: 0.75 }}
+        variants={welcomeItem}
       >
         Ask me anything about machine learning, deep learning, or technical interview preparation.
-      </p>
+      </motion.p>
 
-      {/* Suggestion grid */}
-      <div
-        className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-[560px] fade-up"
-        style={{ animationDelay: '160ms' }}
-      >
-        {SUGGESTIONS.map(({ icon: Icon, label, sublabel, prompt }) => (
-          <button
+      {/* Suggestion chips */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-[560px]">
+        {SUGGESTIONS.map(({ icon: Icon, label, sublabel, prompt }, i) => (
+          <motion.button
             key={label}
+            custom={i}
+            variants={chipItem}
+            initial="hidden"
+            animate="visible"
             onClick={() => onSend(prompt)}
             className={cn(
               'group text-left rounded-2xl border border-border bg-card',
               'px-4 py-4 min-h-[76px]',
-              'hover:border-primary/35 hover:bg-accent/40',
-              'transition-all duration-200 hover-lift press-active',
-              'shadow-sm'
             )}
+            whileHover={{
+              y: -2,
+              boxShadow: '0 8px 24px -6px rgba(0,0,0,0.12)',
+              borderColor: 'var(--primary)',
+              backgroundColor: 'var(--accent)',
+              transition: { duration: 0.18, ease: 'easeOut' },
+            }}
+            whileTap={{ scale: 0.97 }}
+            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
           >
             <div className="flex items-center gap-2.5 mb-1.5">
-              <div className="w-6 h-6 rounded-lg btn-gradient flex items-center justify-center shrink-0 opacity-90 group-hover:opacity-100 transition-opacity">
+              <div className="w-6 h-6 rounded-lg btn-gradient flex items-center justify-center shrink-0 opacity-90">
                 <Icon className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="text-[13.5px] font-semibold tracking-[-0.01em] text-foreground">
+              <span
+                className="font-semibold text-foreground"
+                style={{ fontSize: '13.5px', letterSpacing: '-0.012em' }}
+              >
                 {label}
               </span>
             </div>
-            <p className="text-[12.5px] text-muted-foreground pl-[34px] leading-snug">
+            <p
+              className="leading-snug pl-[34px]"
+              style={{ fontSize: '12.5px', color: 'var(--muted-foreground)', opacity: 0.72 }}
+            >
               {sublabel}
             </p>
-          </button>
+          </motion.button>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -149,29 +194,38 @@ export function MessageList() {
 
   const visibleMessages = currentChat.messages
     .filter((m) => m.content.trim() !== '')
-    // Deduplicate by id — keep first occurrence
     .filter((m, idx, arr) => arr.findIndex((x) => x.id === m.id) === idx);
+
   const isEmpty = visibleMessages.length === 0;
 
   return (
-    <div className="flex-1 overflow-y-auto scroll-smooth">
-      {isEmpty ? (
-        <WelcomeScreen onSend={sendChatMessage} />
-      ) : (
-        /* ── Thread ──────────────────────────────────────────────── */
-        <div className="pt-4 pb-6">
-          {visibleMessages.map((message) => (
-            <Message
-              key={message.id}
-              content={message.content}
-              role={message.role}
-              timestamp={message.timestamp}
-            />
-          ))}
-          {isLoading && <TypingIndicator />}
-          <div ref={endRef} />
-        </div>
-      )}
+    <div className="flex-1 overflow-y-auto scroll-smooth h-full">
+      <AnimatePresence mode="wait">
+        {isEmpty ? (
+          <WelcomeScreen key="welcome" onSend={sendChatMessage} />
+        ) : (
+          <motion.div
+            key="thread"
+            className="pt-4 pb-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.20, ease: 'easeOut' }}
+          >
+            <AnimatePresence initial={false}>
+              {visibleMessages.map((message) => (
+                <Message
+                  key={message.id}
+                  content={message.content}
+                  role={message.role}
+                  timestamp={message.timestamp}
+                />
+              ))}
+            </AnimatePresence>
+            {isLoading && <TypingIndicator key="typing" />}
+            <div ref={endRef} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
