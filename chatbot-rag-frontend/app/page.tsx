@@ -7,9 +7,9 @@ import { ChatProvider } from '@/lib/chat-context';
 
 function ChatInterface() {
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900">
+    <div className="flex h-screen overflow-hidden bg-background">
       <ChatSidebar />
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 min-w-0 relative">
         <MessageList />
         <MessageInput />
       </div>
