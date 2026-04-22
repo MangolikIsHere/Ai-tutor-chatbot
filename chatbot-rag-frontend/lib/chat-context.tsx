@@ -185,29 +185,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
       const assistantMsg = makeMessage('assistant', res.response);
 
-      // Build the next chat state outside the updater (no side-effects inside updaters)
+      // Build the full messages list with both user and assistant messages
+      // (Note: userMsg was already added to React state above)
+      const finalMessages = [
+        ...activeChat.messages.filter((m) => m.id !== userMsg.id && m.id !== assistantMsg.id),
+        userMsg,
+        assistantMsg,
+      ] as StoredMessage[];
+
+      // Update React state with the complete messages
       setCurrentChat((prev) => {
         const base = prev ?? activeChat;
-        // Deduplicate by id in case of StrictMode double-invocation
-        const existingIds = new Set(base.messages.map((m) => m.id));
-        const freshMessages = existingIds.has(assistantMsg.id)
-          ? base.messages
-          : [...base.messages, assistantMsg];
-        return { ...base, messages: freshMessages };
+        return { ...base, messages: finalMessages };
       });
 
-      // Persist to storage and sync sidebar — safely outside the updater
-      const latestChat = getAllChats().find((c) => c.id === activeChat.id);
-      if (latestChat) {
-        const merged = {
-          ...latestChat,
-          messages: [
-            ...latestChat.messages.filter((m) => m.id !== assistantMsg.id),
-            assistantMsg,
-          ] as StoredMessage[],
-        };
-        updateChat(merged.id, { title: merged.title, messages: merged.messages });
-      }
+      // Persist to localStorage immediately (don't rely on React state which is async)
+      updateChat(activeChat.id, { title: activeChat.title, messages: finalMessages });
       syncChats();
 
       // Store the session_id echoed by the server.

@@ -100,32 +100,41 @@ export function clearChat(id: string): Chat | null {
 }
 
 // ─── Smart auto-title (ChatGPT-style) ────────────────────────────────────────
-// Suffix hints to append based on topic detected
-const SUFFIX_MAP: Array<[RegExp, string]> = [
-  [/\b(explain|what is|what are|describe|define|tell me about)\b/i, 'Explained'],
-  [/\b(how to|how do|how does|how can|steps to|guide|tutorial)\b/i, 'Guide'],
-  [/\b(interview|prep|prepare|crack|ace)\b/i, 'Prep'],
-  [/\b(write|create|generate|make|build|implement|code|program)\b/i, 'Implementation'],
-  [/\b(difference|vs|versus|compare|comparison|between)\b/i, 'Comparison'],
-  [/\b(example|examples|demo|show me)\b/i, 'Examples'],
-  [/\b(debug|fix|error|issue|problem|bug|wrong)\b/i, 'Debugging'],
-  [/\b(best|top|list|recommend)\b/i, 'Overview'],
+// Common question starters and phrases to keep together
+const QUESTION_PATTERNS: Array<[RegExp, string]> = [
+  [/^\s*how\s+(are|do|does|can|to|would|should|might|could)\b/i, 'How'],
+  [/^\s*what\s+(is|are|if|does)\b/i, 'What'],
+  [/^\s*why\s+(is|are|do)\b/i, 'Why'],
+  [/^\s*when\s+(is|are|do|should)\b/i, 'When'],
+  [/^\s*where\s+(is|are|do)\b/i, 'Where'],
+  [/^\s*who\s+(is|are|do)\b/i, 'Who'],
 ];
 
-// Common filler words to strip before building title
+// Suffix hints based on topic detected
+const SUFFIX_MAP: Array<[RegExp, string]> = [
+  [/\b(explain|describe|define|teach|show)\b/i, 'Explained'],
+  [/\b(how to|how do|how does|how can|steps to|guide|tutorial)\b/i, 'Guide'],
+  [/\b(interview|prep|prepare|crack|ace|question)\b/i, 'Prep'],
+  [/\b(write|create|generate|make|build|implement|code|program)\b/i, 'Implementation'],
+  [/\b(difference|vs|versus|compare|comparison|between)\b/i, 'Comparison'],
+  [/\b(example|examples|demo|show me|sample)\b/i, 'Examples'],
+  [/\b(debug|fix|error|issue|problem|bug|wrong|not working)\b/i, 'Debugging'],
+  [/\b(best|top|list|recommend|should i|pros|cons)\b/i, 'Overview'],
+];
+
+// Common filler words to strip (only aggressive on non-questions)
 const FILLER = new Set([
-  'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-  'i', 'me', 'my', 'we', 'our', 'you', 'your', 'it', 'its',
+  'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'being',
+  'i', 'me', 'you', 'your', 'it', 'its',
   'and', 'or', 'but', 'so', 'yet', 'for', 'nor', 'at', 'by', 'in',
-  'of', 'on', 'to', 'up', 'as', 'if', 'do', 'can', 'please',
-  'help', 'with', 'from', 'that', 'this', 'some', 'about', 'get',
-  'just', 'also', 'very', 'too', 'has', 'have', 'had', 'will', 'would',
-  'should', 'could', 'would', 'might', 'may', 'shall',
+  'of', 'on', 'to', 'up', 'from', 'with', 'as', 'if',
+  'please', 'help', 'just', 'also', 'very', 'too',
 ]);
 
-// Key topic words to always keep (override filler suppression)
+// High-value words to always keep
 const KEEP = new Set([
-  'ml', 'ai', 'nlp', 'cnn', 'rnn', 'llm', 'gpt', 'sql', 'api',
+  'ml', 'ai', 'nlp', 'cnn', 'rnn', 'llm', 'gpt', 'sql', 'api', 'python',
+  'javascript', 'java', 'react', 'node', 'database', 'network',
 ]);
 
 function toTitleCase(word: string): string {
@@ -134,28 +143,53 @@ function toTitleCase(word: string): string {
 }
 
 export function generateChatTitle(message: string): string {
-  if (!message.trim()) return 'New Chat';
+  const trimmed = message.trim();
+  if (!trimmed) return 'New Chat';
+
+  // Check for question starter pattern and use it if found
+  for (const [pattern, starter] of QUESTION_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      // Extract 2-3 words after the question starter
+      const tokens = trimmed
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => !FILLER.has(w) || KEEP.has(w))
+        .filter(Boolean);
+
+      // Remove the question word itself if it's at the start
+      const afterQuestion = tokens.slice(1).slice(0, 2);
+      const titleParts = [starter];
+      
+      if (afterQuestion.length > 0) {
+        titleParts.push(...afterQuestion.map(toTitleCase));
+      }
+
+      const title = titleParts.join(' ');
+      return title.length > 42 ? title.slice(0, 39).trimEnd() + '…' : title;
+    }
+  }
 
   // Detect suffix hint from the original message
   let suffix = '';
   for (const [pattern, hint] of SUFFIX_MAP) {
-    if (pattern.test(message)) { suffix = hint; break; }
+    if (pattern.test(trimmed)) { suffix = hint; break; }
   }
 
-  // Tokenise: strip punctuation, lowercase, split on whitespace
-  const tokens = message
+  // Tokenize: strip punctuation, lowercase, split on whitespace
+  const tokens = trimmed
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
     .filter(Boolean);
 
-  // Remove filler words (keep KEEP-listed acronyms)
+  // Remove filler words (keep KEEP-listed words)
   const meaningful = tokens.filter(
     (w) => !FILLER.has(w) || KEEP.has(w)
   );
 
-  // Pick first 3-4 content words, then optionally append suffix
-  const MAX_CONTENT = suffix ? 3 : 4;
+  // Pick first 2-3 content words, then append suffix if any
+  const MAX_CONTENT = suffix ? 2 : 3;
   const contentWords = meaningful.slice(0, MAX_CONTENT).map(toTitleCase);
 
   if (contentWords.length === 0) return 'New Chat';
