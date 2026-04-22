@@ -138,16 +138,18 @@ export function MessageInput() {
             <motion.div
               className="relative flex items-end gap-2 rounded-[24px] px-3.5 py-3 transition-all duration-300"
               animate={{
-                borderColor: isFocused ? 'var(--primary)' : 'var(--border-strong)',
+                borderColor: isFocused
+                  ? 'color-mix(in oklch, var(--primary) 55%, var(--border-strong) 45%)'
+                  : 'var(--border-strong)',
                 boxShadow: isFocused
-                  ? 'var(--shadow-xl), 0 0 0 4px var(--primary-glow)'
-                  : 'var(--shadow-lg)',
-                y: isFocused ? -2 : 0,
+                  ? 'var(--shadow-lg), 0 0 0 2px var(--primary-glow)'
+                  : 'var(--shadow-md)',
+                y: isFocused ? -1 : 0,
               }}
               transition={{ duration: 0.3, ease: EASE }}
               style={{
                 background: 'var(--card)',
-                border: '1.5px solid var(--border-strong)',
+                border: '1px solid var(--border-strong)',
               }}
             >
               {/* Attach button */}
@@ -162,7 +164,7 @@ export function MessageInput() {
                   className="w-9 h-9 shrink-0 mb-0.5 rounded-xl transition-colors duration-200"
                   style={{ 
                     color: isFocused ? 'var(--foreground)' : 'var(--muted-foreground)', 
-                    opacity: isFocused ? 0.8 : 0.4 
+                    opacity: isFocused ? 0.78 : 0.58 
                   }}
                 >
                   <Paperclip className="w-4.5 h-4.5" />
@@ -193,7 +195,7 @@ export function MessageInput() {
                   caretColor: 'var(--primary)',
                 }}
               />
-              <style>{`#message-input::placeholder { color: var(--muted-foreground); opacity: ${isFocused ? '0.6' : '0.4'}; transition: all 0.3s; }`}</style>
+              <style>{`#message-input::placeholder { color: var(--muted-foreground); opacity: ${isFocused ? '0.66' : '0.56'}; transition: all 0.25s ease; }`}</style>
 
               {/* Send button */}
               <motion.div
@@ -208,8 +210,12 @@ export function MessageInput() {
                   disabled={!canSend}
                   className="w-9 h-9 shrink-0 mb-0.5 rounded-xl transition-all duration-300 shadow-sm"
                   style={canSend
-                    ? { background: 'var(--primary)', color: '#fff', boxShadow: '0 4px 12px var(--primary-glow)' }
-                    : { background: 'var(--muted)', color: 'var(--muted-foreground)', opacity: 0.3 }
+                    ? {
+                        background: 'linear-gradient(135deg, color-mix(in oklch, var(--primary) 88%, white 12%) 0%, color-mix(in oklch, var(--primary) 78%, black 22%) 100%)',
+                        color: '#fff',
+                        boxShadow: '0 3px 10px var(--primary-glow)',
+                      }
+                    : { background: 'var(--muted)', color: 'var(--muted-foreground)', opacity: 0.45 }
                   }
                   title="Send message"
                 >
@@ -254,7 +260,7 @@ export function MessageInput() {
                   type="button"
                   onClick={() => setUploadOpen(true)}
                   className="hover:underline underline-offset-2 transition-colors duration-150"
-                  style={{ color: 'var(--primary)', opacity: 0.75 }}
+                  style={{ color: 'var(--muted-foreground)', opacity: 0.8 }}
                   whileHover={{ opacity: 1 }}
                 >
                   attach a doc

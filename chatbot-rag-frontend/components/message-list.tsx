@@ -13,28 +13,62 @@ const SUGGESTIONS = [
   {
     icon: BrainCircuit,
     label: 'Explain a concept',
-    sublabel: 'Supervised vs unsupervised learning',
+    sublabels: [
+      'Supervised vs unsupervised learning',
+      'Bias-variance tradeoff explained simply',
+      'When to use cross-validation in practice',
+      'Overfitting vs underfitting with examples',
+    ],
     prompt: 'Explain the difference between supervised and unsupervised learning with examples.',
   },
   {
     icon: Code2,
     label: 'Write code',
-    sublabel: 'Neural network from scratch',
+    sublabels: [
+      'Neural network from scratch',
+      'Train-test split and model evaluation',
+      'Logistic regression in NumPy',
+      'Build a mini transformer block',
+    ],
     prompt: 'Show me a Python implementation of a neural network from scratch using NumPy.',
   },
   {
     icon: BookOpen,
     label: 'Interview prep',
-    sublabel: 'Top ML interview questions',
+    sublabels: [
+      'Top ML interview questions',
+      'System design for ML products',
+      'Model metrics quick revision',
+      'Feature engineering interview round',
+    ],
     prompt: 'What are the most important machine learning interview questions and how should I answer them?',
   },
   {
     icon: Lightbulb,
     label: 'Explain intuitively',
-    sublabel: 'How Transformers work',
+    sublabels: [
+      'How Transformers work',
+      'Attention mechanism in plain English',
+      'Why embeddings matter in LLMs',
+      'Intuition behind gradient descent',
+    ],
     prompt: 'Explain how the Transformer architecture works in simple terms.',
   },
 ] as const;
+
+function hashText(text: string): number {
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+function pickSublabel(chatId: string, itemIndex: number, choices: readonly string[]): string {
+  if (choices.length === 0) return '';
+  const base = hashText(chatId) + itemIndex * 97;
+  return choices[base % choices.length] ?? choices[0];
+}
 
 // ─── Animation presets ────────────────────────────────────────────────────────
 
@@ -73,7 +107,7 @@ function TypingIndicator() {
     >
       <div
         className="flex-shrink-0 w-8 h-8 rounded-xl btn-gradient flex items-center justify-center mt-1 shadow-md"
-        style={{ boxShadow: '0 2px 8px var(--primary-glow)' }}
+        style={{ boxShadow: '0 2px 6px var(--primary-glow)' }}
       >
         <Sparkles className="w-4 h-4 text-white" />
       </div>
@@ -91,7 +125,13 @@ function TypingIndicator() {
 
 // ─── Welcome Screen ───────────────────────────────────────────────────────────
 
-function WelcomeScreen({ onSend }: { onSend: (prompt: string) => void }) {
+function WelcomeScreen({
+  onSend,
+  chatId,
+}: {
+  onSend: (prompt: string) => void;
+  chatId: string;
+}) {
   return (
     <motion.div
       className="h-full flex flex-col items-center justify-center px-5 py-16 text-center select-none"
@@ -102,7 +142,7 @@ function WelcomeScreen({ onSend }: { onSend: (prompt: string) => void }) {
       {/* Hero icon */}
       <motion.div className="relative mb-10" variants={welcomeItem}>
         <div
-          className="absolute inset-0 rounded-[32px] btn-gradient opacity-30 blur-3xl scale-[2.2]"
+          className="absolute inset-0 rounded-[32px] btn-gradient opacity-20 blur-3xl scale-[2]"
           aria-hidden
         />
         <motion.div
@@ -134,7 +174,9 @@ function WelcomeScreen({ onSend }: { onSend: (prompt: string) => void }) {
 
       {/* Suggestion chips */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-[560px]">
-        {SUGGESTIONS.map(({ icon: Icon, label, sublabel, prompt }, i) => (
+        {SUGGESTIONS.map(({ icon: Icon, label, sublabels, prompt }, i) => {
+          const sublabel = pickSublabel(chatId, i, sublabels);
+          return (
           <motion.button
             key={label}
             custom={i}
@@ -147,11 +189,11 @@ function WelcomeScreen({ onSend }: { onSend: (prompt: string) => void }) {
               'px-5 py-5 min-h-[84px] transition-all duration-300',
             )}
             whileHover={{
-              y: -4,
-              boxShadow: 'var(--shadow-lg)',
-              borderColor: 'var(--primary)',
+              y: -2,
+              boxShadow: 'var(--shadow-md)',
+              borderColor: 'color-mix(in oklch, var(--primary) 40%, var(--border) 60%)',
               backgroundColor: 'var(--card)',
-              scale: 1.02,
+              scale: 1.01,
             }}
             whileTap={{ scale: 0.98 }}
             style={{ boxShadow: 'var(--shadow-sm)' }}
@@ -174,7 +216,8 @@ function WelcomeScreen({ onSend }: { onSend: (prompt: string) => void }) {
               {sublabel}
             </p>
           </motion.button>
-        ))}
+          );
+        })}
       </div>
     </motion.div>
   );
@@ -202,7 +245,7 @@ export function MessageList() {
     <div className="flex-1 overflow-y-auto scroll-smooth h-full">
       <AnimatePresence mode="wait">
         {isEmpty ? (
-          <WelcomeScreen key="welcome" onSend={sendChatMessage} />
+          <WelcomeScreen key={`welcome-${currentChat.id}`} onSend={sendChatMessage} chatId={currentChat.id} />
         ) : (
           <motion.div
             key="thread"

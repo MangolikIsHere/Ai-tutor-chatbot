@@ -101,7 +101,7 @@ function AIAvatar() {
   return (
     <div
       className="flex-shrink-0 w-8 h-8 rounded-xl btn-gradient flex items-center justify-center mt-1"
-      style={{ boxShadow: '0 2px 10px var(--primary-glow)' }}
+      style={{ boxShadow: '0 2px 6px var(--primary-glow)' }}
     >
       <Sparkles className="w-4 h-4 text-white" />
     </div>
@@ -160,22 +160,25 @@ export function Message({ content, role, timestamp }: MessageProps) {
         <motion.div
           className={cn(
             'relative px-5 py-4 break-words rounded-2xl transition-shadow duration-300',
-            isUser ? 'rounded-tr-md btn-gradient text-white' : 'rounded-tl-md glass border border-border shadow-sm'
+            isUser ? 'rounded-tr-md text-white border border-transparent' : 'rounded-tl-md glass border border-border shadow-sm'
           )}
           style={{
             fontSize: '14.5px',
-            lineHeight: '1.75',
+            lineHeight: '1.82',
             letterSpacing: '-0.01em',
             ...(isUser
-              ? { boxShadow: '0 4px 15px var(--primary-glow)' }
+              ? {
+                  background: 'linear-gradient(140deg, color-mix(in oklch, var(--primary) 85%, white 15%) 0%, color-mix(in oklch, var(--primary) 72%, black 28%) 100%)',
+                  boxShadow: '0 4px 12px var(--primary-glow)',
+                }
               : {
-                  background: 'var(--card)',
+                  background: 'var(--surface-01)',
                   color: 'var(--card-foreground)',
                 }),
           }}
           whileHover={{
-            boxShadow: isUser ? '0 6px 20px var(--primary-glow)' : 'var(--shadow-md)',
-            scale: 1.005,
+            boxShadow: isUser ? '0 6px 16px var(--primary-glow)' : 'var(--shadow-sm)',
+            scale: 1.003,
           }}
           transition={{ duration: 0.2 }}
         >
@@ -210,7 +213,7 @@ export function Message({ content, role, timestamp }: MessageProps) {
                     return <CodeBlock language={language} codeStr={codeStr} />;
                   },
                   p({ children }) {
-                    return <p className="mb-2.5 last:mb-0" style={{ lineHeight: '1.76' }}>{children}</p>;
+                    return <p className="mb-2.5 last:mb-0" style={{ lineHeight: '1.85' }}>{children}</p>;
                   },
                   a({ children, href }) {
                     return (
@@ -227,14 +230,14 @@ export function Message({ content, role, timestamp }: MessageProps) {
                   },
                   ul({ children }) {
                     return (
-                      <ul className="list-disc list-outside ml-5 my-2.5 space-y-1.5" style={{ fontSize: '13.5px' }}>
+                      <ul className="list-disc list-outside ml-5 my-2.5 space-y-1.5" style={{ fontSize: '14px' }}>
                         {children}
                       </ul>
                     );
                   },
                   ol({ children }) {
                     return (
-                      <ol className="list-decimal list-outside ml-5 my-2.5 space-y-1.5" style={{ fontSize: '13.5px' }}>
+                      <ol className="list-decimal list-outside ml-5 my-2.5 space-y-1.5" style={{ fontSize: '14px' }}>
                         {children}
                       </ol>
                     );
@@ -255,7 +258,7 @@ export function Message({ content, role, timestamp }: MessageProps) {
                     return (
                       <blockquote
                         className="my-3 pl-3.5 italic"
-                        style={{ borderLeft: '2.5px solid var(--primary)', opacity: 0.75, fontSize: '13.5px', lineHeight: '1.7', color: 'var(--muted-foreground)' }}
+                        style={{ borderLeft: '2.5px solid color-mix(in oklch, var(--primary) 70%, var(--border) 30%)', opacity: 0.88, fontSize: '13.5px', lineHeight: '1.75', color: 'var(--muted-foreground)' }}
                       >
                         {children}
                       </blockquote>
@@ -307,7 +310,7 @@ export function Message({ content, role, timestamp }: MessageProps) {
           )}
         >
           <time
-            style={{ fontSize: '11px', color: 'var(--muted-foreground)', opacity: 0.45, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.008em' }}
+            style={{ fontSize: '11px', color: 'var(--muted-foreground)', opacity: 0.66, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.008em' }}
           >
             {timeStr}
           </time>

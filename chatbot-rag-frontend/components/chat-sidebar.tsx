@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useChatContext } from '@/lib/chat-context';
 import { DocumentUploadDialog } from '@/components/document-upload-dialog';
+import { useAuthUser } from '@/lib/auth-user';
 import { cn } from '@/lib/utils';
 
 // ─── Animation presets ────────────────────────────────────────────────────────
@@ -49,8 +50,14 @@ const titleVariants = {
 export function ChatSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const { displayName } = useAuthUser();
   const { chats, currentChat, createNewChat, switchChat, deleteCurrentChat } =
     useChatContext();
+
+  const avatarInitial = React.useMemo(() => {
+    const first = displayName.trim().charAt(0);
+    return first ? first.toUpperCase() : 'N';
+  }, [displayName]);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -72,7 +79,7 @@ export function ChatSidebar() {
         >
           <motion.div
             className="flex-shrink-0 w-8 h-8 rounded-xl btn-gradient flex items-center justify-center shadow-lg"
-            style={{ boxShadow: '0 2px 8px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.2)' }}
+            style={{ boxShadow: '0 2px 6px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.16)' }}
             whileHover={{ scale: 1.1, rotate: 5 }}
             transition={{ type: 'spring', stiffness: 400, damping: 15 }}
           >
@@ -152,7 +159,7 @@ export function ChatSidebar() {
                     fontWeight: 500,
                     letterSpacing: '-0.010em',
                     color: 'var(--sidebar-foreground)',
-                    opacity: 0.62,
+                    opacity: 0.78,
                   }}
                 >
                   <FileUp className="w-3.5 h-3.5 shrink-0" />
@@ -177,7 +184,7 @@ export function ChatSidebar() {
             >
               <p
                 className="text-[10px] font-semibold uppercase select-none"
-                style={{ color: 'var(--muted-foreground)', opacity: 0.42, letterSpacing: '0.09em' }}
+                style={{ color: 'var(--muted-foreground)', opacity: 0.56, letterSpacing: '0.12em' }}
               >
                 Chats
               </p>
@@ -206,7 +213,7 @@ export function ChatSidebar() {
               </p>
             </motion.div>
           ) : (
-            <div className="space-y-0.5 pb-2">
+            <div className="space-y-1 pb-3">
               <AnimatePresence initial={false}>
                 {chats.map((chat, idx) => {
                   const isActive = currentChat?.id === chat.id;
@@ -229,22 +236,24 @@ export function ChatSidebar() {
                             className={cn(
                               'w-full flex items-center gap-2.5 rounded-xl text-left outline-none transition-all duration-200',
                               'focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                              isCollapsed ? 'justify-center p-2 h-10' : 'px-3 py-2 h-10',
+                              isCollapsed ? 'justify-center p-2 h-10' : 'px-3 py-2 h-[42px]',
                             )}
                             style={{
                               fontSize: '13.5px',
                               letterSpacing: '-0.015em',
-                              fontWeight: isActive ? 500 : 400,
-                              background: isActive ? 'var(--sidebar-accent)' : 'transparent',
-                              color: 'var(--sidebar-foreground)',
-                              opacity: isActive ? 1 : 0.6,
+                              fontWeight: isActive ? 580 : 470,
+                              background: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
+                              color: isActive ? 'var(--sidebar-active-fg)' : 'var(--sidebar-foreground)',
+                              opacity: 1,
                               boxShadow: isActive ? 'var(--shadow-sm)' : 'none',
-                              border: isActive ? '1px solid var(--sidebar-border)' : '1px solid transparent',
+                              border: isActive
+                                ? '1px solid color-mix(in oklch, var(--primary) 30%, var(--sidebar-border) 70%)'
+                                : '1px solid transparent',
                             }}
                             whileHover={{
-                              backgroundColor: isActive ? 'var(--sidebar-accent)' : 'rgba(var(--sidebar-accent-foreground), 0.04)',
+                              backgroundColor: isActive ? 'var(--sidebar-active-bg)' : 'var(--sidebar-hover-bg)',
                               opacity: 1,
-                              x: isActive ? 0 : 2,
+                              x: isActive ? 0 : 1,
                             }}
                             whileTap={{ scale: 0.98 }}
                           >
@@ -261,8 +270,8 @@ export function ChatSidebar() {
                                 style={{
                                   width: isCollapsed ? '18px' : '14px',
                                   height: isCollapsed ? '18px' : '14px',
-                                  color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
-                                  opacity: isActive ? 1 : 0.5,
+                                  color: isActive ? 'var(--sidebar-active-icon)' : 'var(--muted-foreground)',
+                                  opacity: isActive ? 1 : 0.75,
                                 }}
                               />
                             </div>
@@ -274,6 +283,7 @@ export function ChatSidebar() {
                                   initial="hidden"
                                   animate="visible"
                                   className="truncate flex-1 leading-none"
+                                  style={{ color: isActive ? 'var(--sidebar-active-fg)' : 'var(--sidebar-foreground)' }}
                                 >
                                   {chat.title}
                                 </motion.span>
@@ -303,9 +313,9 @@ export function ChatSidebar() {
                                 aria-label="Delete chat"
                                 className={cn(
                                   'p-1 rounded-lg transition-colors duration-150',
-                                  'opacity-0 group-hover/item:opacity-100',
+                                  'opacity-35 group-hover/item:opacity-100',
                                 )}
-                                style={{ color: 'var(--muted-foreground)' }}
+                                style={{ color: 'var(--sidebar-active-muted)' }}
                                 whileHover={{
                                   color: 'var(--destructive)',
                                   backgroundColor: 'oklch(from var(--destructive) l c h / 0.10)',
@@ -339,14 +349,14 @@ export function ChatSidebar() {
           <div className={cn("flex items-center gap-3 min-w-0 flex-1", isCollapsed && "justify-center")}>
             <div 
               className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center btn-gradient shadow-sm"
-              style={{ boxShadow: '0 2px 8px var(--primary-glow)' }}
+              style={{ boxShadow: '0 2px 6px var(--primary-glow)' }}
             >
-              <span className="text-[13px] font-bold text-white">N</span>
+              <span className="text-[13px] font-bold text-white">{avatarInitial}</span>
             </div>
             {!isCollapsed && (
               <div className="flex flex-col min-w-0">
                 <span className="text-[13.5px] font-semibold truncate leading-none mb-1">
-                  Neural User
+                  {displayName}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <span className="relative flex h-1.5 w-1.5 shrink-0">
@@ -372,7 +382,7 @@ export function ChatSidebar() {
                   onClick={() => setIsCollapsed(!isCollapsed)}
                   aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                   className="w-8 h-8 shrink-0 rounded-lg hover:bg-sidebar-accent transition-colors"
-                  style={{ color: 'var(--sidebar-foreground)', opacity: 0.35 }}
+                  style={{ color: 'var(--sidebar-foreground)', opacity: 0.62 }}
                 >
                   {isCollapsed
                     ? <PanelLeft className="w-4 h-4" />
