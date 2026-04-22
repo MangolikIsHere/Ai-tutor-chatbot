@@ -8,6 +8,13 @@ export interface ChatRequest {
 
 export interface ChatResponse {
   response: string;
+  rag_used?: boolean;
+}
+
+export interface UploadResponse {
+  message: string;
+  filename?: string;
+  chunks?: number;
 }
 
 export class APIError extends Error {
@@ -21,6 +28,8 @@ export class APIError extends Error {
   }
 }
 
+// ─── Chat ────────────────────────────────────────────────────────────────────
+
 export async function sendMessage(request: ChatRequest): Promise<ChatResponse> {
   try {
     const controller = new AbortController();
@@ -28,9 +37,7 @@ export async function sendMessage(request: ChatRequest): Promise<ChatResponse> {
 
     const response = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
       signal: controller.signal,
     });
@@ -46,16 +53,13 @@ export async function sendMessage(request: ChatRequest): Promise<ChatResponse> {
       );
     }
 
-    const data = (await response.json()) as ChatResponse;
-    return data;
+    return (await response.json()) as ChatResponse;
   } catch (error) {
-    if (error instanceof APIError) {
-      throw error;
-    }
+    if (error instanceof APIError) throw error;
 
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new APIError(
-        'Failed to connect to the server. Make sure the backend is running at http://127.0.0.1:8000',
+        'Failed to connect to the server. Make sure the backend is running.',
         undefined,
         error
       );
@@ -69,10 +73,60 @@ export async function sendMessage(request: ChatRequest): Promise<ChatResponse> {
       );
     }
 
-    throw new APIError(
-      'An unexpected error occurred. Please try again.',
-      undefined,
-      error
-    );
+    throw new APIError('An unexpected error occurred. Please try again.', undefined, error);
   }
+}
+
+// ─── Document Upload ─────────────────────────────────────────────────────────
+
+export async function uploadDocument(
+  file: File,
+  onProgress?: (pct: number) => void
+): Promise<UploadResponse> {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const xhr = new XMLHttpRequest();
+
+    // Progress tracking
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      });
+    }
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as UploadResponse);
+        } catch {
+          resolve({ message: 'Document uploaded successfully.' });
+        }
+      } else {
+        let detail = `Upload failed (${xhr.status})`;
+        try {
+          const body = JSON.parse(xhr.responseText);
+          detail = body.detail || detail;
+        } catch {
+          /* ignore */
+        }
+        reject(new APIError(detail, xhr.status));
+      }
+    });
+
+    xhr.addEventListener('error', () =>
+      reject(new APIError('Network error during upload. Please try again.'))
+    );
+
+    xhr.addEventListener('timeout', () =>
+      reject(new APIError('Upload timed out. Please try a smaller file.'))
+    );
+
+    xhr.timeout = 60000; // 60 s for uploads
+    xhr.open('POST', `${API_BASE}/upload`);
+    xhr.send(formData);
+  });
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Copy, Check, User, Sparkles } from 'lucide-react';
@@ -13,110 +13,150 @@ interface MessageProps {
   timestamp: number;
 }
 
-export function Message({ content, role, timestamp }: MessageProps) {
-  const [copied, setCopied] = useState<string | null>(null);
+// ─── Code Block ──────────────────────────────────────────────────────────────
 
+interface CodeBlockProps {
+  language: string;
+  codeStr: string;
+}
+
+function CodeBlock({ language, codeStr }: CodeBlockProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(codeStr);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative my-3 rounded-xl overflow-hidden border border-border/60 bg-[#0c0c12] dark:bg-[#09090e] shadow-md">
+      {/* Header bar */}
+      <div className="flex items-center justify-between pl-4 pr-2 py-2 bg-[#111118] border-b border-white/[0.05]">
+        <div className="flex items-center gap-2">
+          {/* Traffic light dots — purely decorative */}
+          <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]/80" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]/80" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]/80" />
+          <span className="ml-2 text-[10px] font-mono font-medium text-white/30 uppercase tracking-widest">
+            {language}
+          </span>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleCopy}
+          className={cn(
+            'h-6 px-2 gap-1.5 text-[11px] transition-all',
+            copied
+              ? 'text-emerald-400 hover:text-emerald-400'
+              : 'text-white/30 hover:text-white/70'
+          )}
+        >
+          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          {copied ? 'Copied!' : 'Copy'}
+        </Button>
+      </div>
+      {/* Code body */}
+      <pre className="overflow-x-auto p-4 text-[13px] leading-[1.7] text-gray-200">
+        <code className="font-mono">{codeStr}</code>
+      </pre>
+    </div>
+  );
+}
+
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+
+function AIAvatar() {
+  return (
+    <div className="flex-shrink-0 w-7 h-7 rounded-lg btn-gradient flex items-center justify-center shadow-sm mt-0.5">
+      <Sparkles className="w-3.5 h-3.5 text-white" />
+    </div>
+  );
+}
+
+function UserAvatar() {
+  return (
+    <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-muted border border-border flex items-center justify-center mt-0.5">
+      <User className="w-3.5 h-3.5 text-foreground/60" />
+    </div>
+  );
+}
+
+// ─── Message ──────────────────────────────────────────────────────────────────
+
+export function Message({ content, role, timestamp }: MessageProps) {
+  const [msgCopied, setMsgCopied] = useState(false);
   const isUser = role === 'user';
+
   const timeStr = new Date(timestamp).toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
   });
 
-  const handleCopyCode = (code: string, key: string) => {
-    navigator.clipboard.writeText(code);
-    setCopied(key);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const handleCopyMessage = () => {
+  const handleCopyMessage = useCallback(() => {
     navigator.clipboard.writeText(content);
-    setCopied('message');
-    setTimeout(() => setCopied(null), 2000);
-  };
+    setMsgCopied(true);
+    setTimeout(() => setMsgCopied(false), 2000);
+  }, [content]);
 
   return (
     <div
       className={cn(
-        'group flex gap-3 px-4 py-3 msg-animate',
+        'group/msg flex gap-2.5 px-4 sm:px-6 py-2 msg-animate',
         isUser ? 'justify-end' : 'justify-start'
       )}
     >
-      {/* Avatar — AI side */}
-      {!isUser && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg btn-gradient flex items-center justify-center shadow-sm mt-0.5">
-          <Sparkles className="w-3.5 h-3.5 text-white" />
-        </div>
-      )}
+      {!isUser && <AIAvatar />}
 
-      {/* Bubble */}
-      <div className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start', 'max-w-[75%] lg:max-w-[68%]')}>
+      {/* Content column */}
+      <div
+        className={cn(
+          'flex flex-col gap-1 min-w-0',
+          isUser ? 'items-end max-w-[78%] sm:max-w-[68%]' : 'items-start max-w-[86%] sm:max-w-[75%]'
+        )}
+      >
+        {/* Bubble */}
         <div
           className={cn(
-            'relative rounded-2xl px-4 py-3 text-sm leading-relaxed',
+            'relative px-4 py-3 text-[14px] leading-[1.65] break-words',
             isUser
-              ? 'bg-primary text-primary-foreground rounded-tr-sm'
-              : 'bg-card border border-border text-card-foreground rounded-tl-sm'
+              ? [
+                  'rounded-2xl rounded-tr-sm',
+                  'btn-gradient text-white shadow-sm',
+                ]
+              : [
+                  'rounded-2xl rounded-tl-sm',
+                  'bg-card border border-border text-card-foreground shadow-sm',
+                ]
           )}
         >
           {isUser ? (
-            <p className="whitespace-pre-wrap break-words">{content}</p>
+            <p className="whitespace-pre-wrap">{content}</p>
           ) : (
-            <div className="prose-custom">
+            <div className="space-y-0.5">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  // Inline code
                   code({ inline, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || '');
                     const language = match ? match[1] : 'text';
                     const codeStr = String(children).replace(/\n$/, '');
-                    const codeKey = `${language}-${codeStr.slice(0, 20)}`;
 
                     if (inline) {
                       return (
                         <code
-                          className="bg-muted text-foreground/90 px-1.5 py-0.5 rounded text-[0.8em] font-mono"
+                          className="bg-muted/80 text-foreground px-1.5 py-0.5 rounded text-[0.82em] font-mono border border-border/50"
                           {...props}
                         >
                           {children}
                         </code>
                       );
                     }
-
-                    return (
-                      <div className="relative mt-3 mb-3 rounded-xl overflow-hidden border border-border bg-[#0d0d10] dark:bg-[#09090c]">
-                        {/* Code header */}
-                        <div className="flex items-center justify-between px-4 py-2 bg-[#13131a] border-b border-border/50">
-                          <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">
-                            {language}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleCopyCode(codeStr, codeKey)}
-                            className="h-6 gap-1 text-muted-foreground hover:text-foreground px-2"
-                          >
-                            {copied === codeKey ? (
-                              <>
-                                <Check className="w-3 h-3 text-emerald-400" />
-                                <span className="text-[11px]">Copied</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-3 h-3" />
-                                <span className="text-[11px]">Copy</span>
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        <pre className="p-4 overflow-x-auto text-[13px] leading-relaxed">
-                          <code className="font-mono text-gray-200">{codeStr}</code>
-                        </pre>
-                      </div>
-                    );
+                    return <CodeBlock language={language} codeStr={codeStr} />;
                   },
                   p({ children }) {
-                    return <p className="mb-2 last:mb-0">{children}</p>;
+                    return <p className="mb-2.5 last:mb-0 leading-[1.7]">{children}</p>;
                   },
                   a({ children, href }) {
                     return (
@@ -124,55 +164,86 @@ export function Message({ content, role, timestamp }: MessageProps) {
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+                        className="text-primary underline underline-offset-2 hover:opacity-75 transition-opacity"
                       >
                         {children}
                       </a>
                     );
                   },
                   ul({ children }) {
-                    return <ul className="list-disc list-outside ml-4 my-2 space-y-0.5">{children}</ul>;
+                    return (
+                      <ul className="list-disc list-outside ml-5 my-2 space-y-1 text-[13.5px]">
+                        {children}
+                      </ul>
+                    );
                   },
                   ol({ children }) {
-                    return <ol className="list-decimal list-outside ml-4 my-2 space-y-0.5">{children}</ol>;
+                    return (
+                      <ol className="list-decimal list-outside ml-5 my-2 space-y-1 text-[13.5px]">
+                        {children}
+                      </ol>
+                    );
                   },
                   li({ children }) {
-                    return <li className="text-sm">{children}</li>;
+                    return <li className="leading-[1.6]">{children}</li>;
                   },
                   h1({ children }) {
-                    return <h1 className="text-lg font-semibold mt-4 mb-2">{children}</h1>;
+                    return (
+                      <h1 className="text-[17px] font-semibold tracking-tight mt-5 mb-2 first:mt-0">
+                        {children}
+                      </h1>
+                    );
                   },
                   h2({ children }) {
-                    return <h2 className="text-base font-semibold mt-3 mb-1.5">{children}</h2>;
+                    return (
+                      <h2 className="text-[15px] font-semibold tracking-tight mt-4 mb-1.5 first:mt-0">
+                        {children}
+                      </h2>
+                    );
                   },
                   h3({ children }) {
-                    return <h3 className="text-sm font-semibold mt-2 mb-1">{children}</h3>;
+                    return (
+                      <h3 className="text-[14px] font-semibold mt-3 mb-1 first:mt-0">
+                        {children}
+                      </h3>
+                    );
                   },
                   blockquote({ children }) {
                     return (
-                      <blockquote className="border-l-2 border-primary/50 pl-3 my-2 text-muted-foreground italic">
+                      <blockquote className="border-l-2 border-primary/40 pl-3.5 my-2.5 text-muted-foreground italic text-[13.5px]">
                         {children}
                       </blockquote>
                     );
                   },
+                  hr() {
+                    return <hr className="my-3 border-border" />;
+                  },
                   table({ children }) {
                     return (
-                      <div className="overflow-x-auto my-2">
-                        <table className="text-xs border-collapse w-full">{children}</table>
+                      <div className="overflow-x-auto my-3 rounded-lg border border-border">
+                        <table className="text-[12.5px] border-collapse w-full">{children}</table>
                       </div>
                     );
                   },
+                  thead({ children }) {
+                    return <thead className="bg-muted/60">{children}</thead>;
+                  },
                   th({ children }) {
                     return (
-                      <th className="border border-border px-3 py-1.5 bg-muted text-left font-medium">
+                      <th className="border-b border-border px-3.5 py-2 text-left font-medium text-foreground/80">
                         {children}
                       </th>
                     );
                   },
                   td({ children }) {
                     return (
-                      <td className="border border-border px-3 py-1.5">{children}</td>
+                      <td className="border-b border-border/50 px-3.5 py-2 last:border-b-0">
+                        {children}
+                      </td>
                     );
+                  },
+                  strong({ children }) {
+                    return <strong className="font-semibold text-foreground">{children}</strong>;
                   },
                 }}
               >
@@ -182,36 +253,33 @@ export function Message({ content, role, timestamp }: MessageProps) {
           )}
         </div>
 
-        {/* Footer: time + copy */}
+        {/* Meta row: timestamp + copy */}
         <div
           className={cn(
             'flex items-center gap-2 px-1',
             isUser ? 'flex-row-reverse' : 'flex-row'
           )}
         >
-          <span className="text-[11px] text-muted-foreground/60">{timeStr}</span>
+          <time className="text-[11px] tabular-nums text-muted-foreground/50">{timeStr}</time>
           {!isUser && (
             <button
               onClick={handleCopyMessage}
-              className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1"
-              title="Copy response"
-            >
-              {copied === 'message' ? (
-                <Check className="w-3 h-3 text-emerald-400" />
-              ) : (
-                <Copy className="w-3 h-3" />
+              aria-label="Copy message"
+              className={cn(
+                'flex items-center gap-1 text-[11px] transition-all',
+                'opacity-0 group-hover/msg:opacity-100',
+                msgCopied
+                  ? 'text-emerald-400'
+                  : 'text-muted-foreground/50 hover:text-muted-foreground'
               )}
+            >
+              {msgCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
             </button>
           )}
         </div>
       </div>
 
-      {/* Avatar — user side */}
-      {isUser && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary border border-border flex items-center justify-center mt-0.5">
-          <User className="w-3.5 h-3.5 text-foreground/70" />
-        </div>
-      )}
+      {isUser && <UserAvatar />}
     </div>
   );
 }
