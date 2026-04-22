@@ -18,7 +18,7 @@ import {
   FileUp,
   Loader2,
 } from 'lucide-react';
-import { uploadDocument } from '@/lib/api';
+import { useChatContext } from '@/lib/chat-context';
 import { cn } from '@/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -74,6 +74,7 @@ export function DocumentUploadDialog({ open, onOpenChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const { handleUpload } = useChatContext();
 
   // ── Validation ────────────────────────────────────────────────────────────
   const validate = (file: File): string | null => {
@@ -103,7 +104,7 @@ export function DocumentUploadDialog({ open, onOpenChange }: Props) {
 
     try {
       const entry = files[index];
-      const result = await uploadDocument(entry.file, (pct) =>
+      const result = await handleUpload(entry.file, (pct) =>
         setFiles((prev) =>
           prev.map((f, i) => (i === index ? { ...f, progress: pct } : f))
         )
