@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import {
   Tooltip,
   TooltipContent,
@@ -30,37 +29,55 @@ export function ChatSidebar() {
     useChatContext();
 
   return (
-    <TooltipProvider delayDuration={250}>
-      {/* ── Sidebar shell ────────────────────────────────────────── */}
+    <TooltipProvider delayDuration={200}>
       <aside
         className={cn(
           'relative flex flex-col h-full shrink-0 overflow-hidden',
-          'border-r border-sidebar-border bg-sidebar',
-          'transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
-          isCollapsed ? 'w-[60px]' : 'w-[256px]'
+          'bg-sidebar',
+          'transition-[width] duration-280 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width]',
+          isCollapsed ? 'w-[56px]' : 'w-[248px]'
         )}
+        style={{ borderRight: '1px solid var(--sidebar-border)' }}
       >
-        {/* ── Brand header ─────────────────────────────────────── */}
+        {/* ── Brand header ──────────────────────────────────────── */}
         <div
           className={cn(
-            'flex items-center gap-2.5 h-14 px-4 shrink-0',
-            isCollapsed && 'justify-center px-0'
+            'flex items-center gap-2.5 px-3.5 shrink-0',
+            isCollapsed && 'justify-center px-0',
           )}
+          style={{ height: '54px' }}
         >
-          <div className="flex-shrink-0 w-7 h-7 rounded-lg btn-gradient flex items-center justify-center shadow-sm">
+          <div
+            className="flex-shrink-0 w-7 h-7 rounded-[10px] btn-gradient flex items-center justify-center"
+            style={{
+              boxShadow: '0 1px 4px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.18)',
+            }}
+          >
             <Sparkles className="w-3.5 h-3.5 text-white" />
           </div>
           {!isCollapsed && (
-            <span className="font-semibold text-[14px] tracking-tight text-sidebar-foreground select-none">
+            <span
+              className="font-semibold text-[15px] select-none"
+              style={{
+                color: 'var(--sidebar-foreground)',
+                letterSpacing: '-0.024em',
+              }}
+            >
               NeuralChat
             </span>
           )}
         </div>
 
-        <Separator className="bg-sidebar-border" />
+        {/* Hairline separator */}
+        <div style={{ height: '1px', background: 'var(--sidebar-border)', flexShrink: 0 }} />
 
         {/* ── Action buttons ────────────────────────────────────── */}
-        <div className={cn('flex flex-col gap-1.5 px-3 py-3', isCollapsed && 'px-2 items-center')}>
+        <div
+          className={cn(
+            'flex flex-col gap-1.5 px-2.5 py-3',
+            isCollapsed && 'px-2 items-center'
+          )}
+        >
           {/* New chat */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -69,10 +86,13 @@ export function ChatSidebar() {
                 onClick={createNewChat}
                 size={isCollapsed ? 'icon' : 'sm'}
                 className={cn(
-                  'btn-gradient text-white shadow-sm transition-all duration-150',
-                  'hover:opacity-90 active:scale-[0.97] press-active',
-                  isCollapsed ? 'w-9 h-9' : 'w-full h-8 justify-start gap-2 text-[13px]'
+                  'btn-gradient text-white press-active',
+                  'transition-all duration-150',
+                  isCollapsed
+                    ? 'w-9 h-9 rounded-xl shadow-sm hover:opacity-90 hover:scale-[1.04] active:scale-95'
+                    : 'w-full h-9 justify-start gap-2.5 rounded-xl shadow-sm hover:opacity-90 active:scale-[0.97]'
                 )}
+                style={{ fontSize: '13px', fontWeight: 500, letterSpacing: '-0.01em' }}
               >
                 <Plus className="w-3.5 h-3.5 shrink-0" />
                 {!isCollapsed && <span>New chat</span>}
@@ -86,15 +106,22 @@ export function ChatSidebar() {
             <TooltipTrigger asChild>
               <Button
                 id="upload-docs-btn"
-                variant="outline"
+                variant="ghost"
                 size={isCollapsed ? 'icon' : 'sm'}
                 onClick={() => setUploadOpen(true)}
                 className={cn(
-                  'border-sidebar-border bg-transparent text-sidebar-foreground/70',
-                  'hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-sidebar-border',
-                  'transition-all duration-150 active:scale-[0.97]',
-                  isCollapsed ? 'w-9 h-9' : 'w-full h-8 justify-start gap-2 text-[13px]'
+                  'hover:bg-sidebar-accent transition-all duration-150 active:scale-[0.97]',
+                  isCollapsed
+                    ? 'w-9 h-9 rounded-xl'
+                    : 'w-full h-9 justify-start gap-2.5 rounded-xl'
                 )}
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  letterSpacing: '-0.01em',
+                  color: 'var(--sidebar-foreground)',
+                  opacity: 0.65,
+                }}
               >
                 <FileUp className="w-3.5 h-3.5 shrink-0" />
                 {!isCollapsed && <span>Upload docs</span>}
@@ -104,21 +131,40 @@ export function ChatSidebar() {
           </Tooltip>
         </div>
 
-        {/* ── Section label ─────────────────────────────────────── */}
+        {/* ── Section label ──────────────────────────────────────── */}
         {!isCollapsed && chats.length > 0 && (
-          <div className="px-4 pb-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none">
-              Recent
+          <div className="px-3.5 pb-1.5">
+            <p
+              className="text-[10px] font-semibold uppercase select-none"
+              style={{
+                color: 'var(--muted-foreground)',
+                opacity: 0.45,
+                letterSpacing: '0.09em',
+              }}
+            >
+              Chats
             </p>
           </div>
         )}
 
         {/* ── Chat list ─────────────────────────────────────────── */}
-        <ScrollArea className={cn('flex-1', isCollapsed ? 'px-2' : 'px-2')}>
+        <ScrollArea className="flex-1 px-2">
           {chats.length === 0 && !isCollapsed ? (
             <div className="py-10 flex flex-col items-center gap-2 text-center px-4">
-              <MessageSquare className="w-6 h-6 text-muted-foreground/30" />
-              <p className="text-xs text-muted-foreground/60">No chats yet</p>
+              <MessageSquare
+                className="w-5 h-5"
+                style={{ color: 'var(--muted-foreground)', opacity: 0.2 }}
+              />
+              <p
+                className="text-[12px]"
+                style={{
+                  color: 'var(--muted-foreground)',
+                  opacity: 0.4,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                No chats yet
+              </p>
             </div>
           ) : (
             <div className="space-y-0.5 pb-2">
@@ -128,7 +174,7 @@ export function ChatSidebar() {
                   <div
                     key={chat.id}
                     className="group/item relative sidebar-item-enter"
-                    style={{ animationDelay: `${idx * 20}ms` }}
+                    style={{ animationDelay: `${idx * 16}ms` }}
                   >
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -136,24 +182,54 @@ export function ChatSidebar() {
                           id={`chat-item-${chat.id}`}
                           onClick={() => switchChat(chat.id)}
                           className={cn(
-                            'w-full flex items-center gap-2 rounded-lg text-[13px] text-left',
+                            'w-full flex items-center gap-2 rounded-xl text-left',
                             'transition-all duration-150 outline-none',
                             'focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                            isCollapsed ? 'justify-center p-2 h-9' : 'px-2.5 py-2 h-8',
-                            isActive
-                              ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                              : 'text-sidebar-foreground/65 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'
+                            isCollapsed
+                              ? 'justify-center p-2 h-9'
+                              : 'px-2.5 py-2 h-9',
                           )}
+                          style={{
+                            fontSize: '13px',
+                            letterSpacing: '-0.012em',
+                            fontWeight: isActive ? 500 : 400,
+                            borderLeft: isActive
+                              ? '2px solid var(--primary)'
+                              : '2px solid transparent',
+                            background: isActive
+                              ? 'var(--sidebar-accent)'
+                              : 'transparent',
+                            color: isActive
+                              ? 'var(--sidebar-foreground)'
+                              : 'var(--sidebar-foreground)',
+                            opacity: isActive ? 1 : 0.55,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isActive) {
+                              (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-accent)';
+                              (e.currentTarget as HTMLElement).style.opacity = '0.85';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isActive) {
+                              (e.currentTarget as HTMLElement).style.background = 'transparent';
+                              (e.currentTarget as HTMLElement).style.opacity = '0.55';
+                            }
+                          }}
                         >
                           <MessageSquare
-                            className={cn(
-                              'shrink-0 transition-colors',
-                              isCollapsed ? 'w-4 h-4' : 'w-3.5 h-3.5',
-                              isActive ? 'text-primary' : 'text-muted-foreground/50'
-                            )}
+                            className="shrink-0 transition-colors"
+                            style={{
+                              width: isCollapsed ? '16px' : '13px',
+                              height: isCollapsed ? '16px' : '13px',
+                              color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
+                              opacity: isActive ? 1 : 0.45,
+                            }}
                           />
                           {!isCollapsed && (
-                            <span className="truncate flex-1 leading-snug">{chat.title}</span>
+                            <span className="truncate flex-1 leading-snug">
+                              {chat.title}
+                            </span>
                           )}
                         </button>
                       </TooltipTrigger>
@@ -164,7 +240,7 @@ export function ChatSidebar() {
                       )}
                     </Tooltip>
 
-                    {/* Hover delete — only when expanded + active */}
+                    {/* Delete — hover, active only */}
                     {!isCollapsed && isActive && (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -174,10 +250,20 @@ export function ChatSidebar() {
                             aria-label="Delete chat"
                             className={cn(
                               'absolute right-1.5 top-1/2 -translate-y-1/2',
-                              'p-1 rounded-md transition-all duration-150',
+                              'p-1 rounded-lg transition-all duration-150',
                               'opacity-0 group-hover/item:opacity-100',
-                              'text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10'
                             )}
+                            style={{
+                              color: 'var(--muted-foreground)',
+                            }}
+                            onMouseEnter={(e) => {
+                              (e.currentTarget as HTMLElement).style.color = 'var(--destructive)';
+                              (e.currentTarget as HTMLElement).style.background = 'oklch(from var(--destructive) l c h / 0.10)';
+                            }}
+                            onMouseLeave={(e) => {
+                              (e.currentTarget as HTMLElement).style.color = 'var(--muted-foreground)';
+                              (e.currentTarget as HTMLElement).style.background = 'transparent';
+                            }}
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
@@ -192,22 +278,31 @@ export function ChatSidebar() {
           )}
         </ScrollArea>
 
-        {/* ── Footer / status + collapse ────────────────────────── */}
-        <Separator className="bg-sidebar-border" />
+        {/* ── Footer ────────────────────────────────────────────── */}
+        <div style={{ height: '1px', background: 'var(--sidebar-border)', flexShrink: 0 }} />
         <div
           className={cn(
-            'flex items-center h-12 px-3 gap-2 shrink-0',
+            'flex items-center px-3 gap-2 shrink-0',
             isCollapsed && 'justify-center px-0'
           )}
+          style={{ height: '52px' }}
         >
           {!isCollapsed && (
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              {/* Animated ping dot */}
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-55" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </span>
-              <span className="text-[11px] text-muted-foreground/70 truncate">Connected</span>
+              <span
+                className="text-[12px] truncate font-medium"
+                style={{
+                  color: 'var(--sidebar-foreground)',
+                  opacity: 0.45,
+                  letterSpacing: '-0.012em',
+                }}
+              >
+                Connected
+              </span>
             </div>
           )}
 
@@ -220,10 +315,8 @@ export function ChatSidebar() {
                 variant="ghost"
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                className={cn(
-                  'w-7 h-7 shrink-0 text-muted-foreground/50',
-                  'hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all'
-                )}
+                className="w-7 h-7 shrink-0 rounded-lg hover:bg-sidebar-accent transition-all"
+                style={{ color: 'var(--sidebar-foreground)', opacity: 0.38 }}
               >
                 {isCollapsed
                   ? <PanelLeft className="w-3.5 h-3.5" />
@@ -238,7 +331,6 @@ export function ChatSidebar() {
         </div>
       </aside>
 
-      {/* ── Upload dialog (outside sidebar, in portal) ─────────── */}
       <DocumentUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
     </TooltipProvider>
   );

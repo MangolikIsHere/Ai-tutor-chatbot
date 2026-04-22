@@ -15,12 +15,7 @@ interface MessageProps {
 
 // ─── Code Block ──────────────────────────────────────────────────────────────
 
-interface CodeBlockProps {
-  language: string;
-  codeStr: string;
-}
-
-function CodeBlock({ language, codeStr }: CodeBlockProps) {
+function CodeBlock({ language, codeStr }: { language: string; codeStr: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -30,46 +25,58 @@ function CodeBlock({ language, codeStr }: CodeBlockProps) {
   };
 
   return (
-    <div className="relative my-3 rounded-xl overflow-hidden border border-border/60 bg-[#0c0c12] dark:bg-[#09090e] shadow-md">
-      {/* Header bar */}
-      <div className="flex items-center justify-between pl-4 pr-2 py-2 bg-[#111118] border-b border-white/[0.05]">
-        <div className="flex items-center gap-2">
-          {/* Traffic light dots — purely decorative */}
-          <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]/80" />
-          <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]/80" />
-          <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]/80" />
-          <span className="ml-2 text-[10px] font-mono font-medium text-white/30 uppercase tracking-widest">
-            {language}
-          </span>
-        </div>
+    <div
+      className="relative my-4 rounded-2xl overflow-hidden"
+      style={{
+        background: '#0d0d14',
+        border: '1px solid rgba(255,255,255,0.07)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.22)',
+      }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-4 py-2.5"
+        style={{ background: '#111119', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        <span
+          className="font-mono font-semibold uppercase"
+          style={{ fontSize: '10px', letterSpacing: '0.09em', color: 'rgba(255,255,255,0.30)' }}
+        >
+          {language || 'code'}
+        </span>
         <Button
           size="sm"
           variant="ghost"
           onClick={handleCopy}
-          className={cn(
-            'h-6 px-2 gap-1.5 text-[11px] transition-all',
-            copied
-              ? 'text-emerald-400 hover:text-emerald-400'
-              : 'text-white/30 hover:text-white/70'
-          )}
+          className="h-6 px-2.5 gap-1.5 rounded-lg transition-all"
+          style={{
+            fontSize: '11px',
+            color: copied ? 'rgb(52,211,153)' : 'rgba(255,255,255,0.35)',
+          }}
         >
           {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
           {copied ? 'Copied!' : 'Copy'}
         </Button>
       </div>
-      {/* Code body */}
-      <pre className="overflow-x-auto p-4 text-[13px] leading-[1.7] text-gray-200">
+      {/* Body */}
+      <pre
+        className="overflow-x-auto px-4 py-4"
+        style={{ fontSize: '13px', lineHeight: '1.75', color: '#c9d1d9' }}
+      >
         <code className="font-mono">{codeStr}</code>
       </pre>
     </div>
   );
 }
 
-// ─── Avatar ───────────────────────────────────────────────────────────────────
+// ─── Avatars ──────────────────────────────────────────────────────────────────
 
 function AIAvatar() {
   return (
-    <div className="flex-shrink-0 w-7 h-7 rounded-lg btn-gradient flex items-center justify-center shadow-sm mt-0.5">
+    <div
+      className="flex-shrink-0 w-7 h-7 rounded-full btn-gradient flex items-center justify-center mt-0.5"
+      style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}
+    >
       <Sparkles className="w-3.5 h-3.5 text-white" />
     </div>
   );
@@ -77,8 +84,14 @@ function AIAvatar() {
 
 function UserAvatar() {
   return (
-    <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-muted border border-border flex items-center justify-center mt-0.5">
-      <User className="w-3.5 h-3.5 text-foreground/60" />
+    <div
+      className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
+      style={{
+        background: 'var(--surface-02)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      <User className="w-3.5 h-3.5" style={{ color: 'var(--foreground)', opacity: 0.55 }} />
     </div>
   );
 }
@@ -103,38 +116,43 @@ export function Message({ content, role, timestamp }: MessageProps) {
   return (
     <div
       className={cn(
-        'group/msg flex gap-2.5 px-4 sm:px-6 py-2 msg-animate',
+        'group/msg flex gap-3 px-4 sm:px-6 py-2 max-w-[780px] mx-auto msg-animate',
         isUser ? 'justify-end' : 'justify-start'
       )}
     >
       {!isUser && <AIAvatar />}
 
-      {/* Content column */}
       <div
         className={cn(
-          'flex flex-col gap-1 min-w-0',
-          isUser ? 'items-end max-w-[78%] sm:max-w-[68%]' : 'items-start max-w-[86%] sm:max-w-[75%]'
+          'flex flex-col gap-1.5 min-w-0',
+          isUser
+            ? 'items-end max-w-[72%] sm:max-w-[60%]'
+            : 'items-start max-w-[90%] sm:max-w-[82%]'
         )}
       >
         {/* Bubble */}
         <div
           className={cn(
-            'relative px-4 py-3 text-[14px] leading-[1.65] break-words',
-            isUser
-              ? [
-                  'rounded-2xl rounded-tr-sm',
-                  'btn-gradient text-white shadow-sm',
-                ]
-              : [
-                  'rounded-2xl rounded-tl-sm',
-                  'bg-card border border-border text-card-foreground shadow-sm',
-                ]
+            'relative px-4 py-3 break-words rounded-2xl',
+            isUser ? 'rounded-tr-md btn-gradient text-white' : 'rounded-tl-md'
           )}
+          style={{
+            fontSize: '14px',
+            lineHeight: '1.72',
+            letterSpacing: '-0.009em',
+            ...(isUser
+              ? { boxShadow: '0 2px 10px rgba(0,0,0,0.14)' }
+              : {
+                  background: 'var(--card)',
+                  color: 'var(--card-foreground)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                }),
+          }}
         >
           {isUser ? (
             <p className="whitespace-pre-wrap">{content}</p>
           ) : (
-            <div className="space-y-0.5">
+            <div>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -142,11 +160,17 @@ export function Message({ content, role, timestamp }: MessageProps) {
                     const match = /language-(\w+)/.exec(className || '');
                     const language = match ? match[1] : 'text';
                     const codeStr = String(children).replace(/\n$/, '');
-
                     if (inline) {
                       return (
                         <code
-                          className="bg-muted/80 text-foreground px-1.5 py-0.5 rounded text-[0.82em] font-mono border border-border/50"
+                          className="font-mono border"
+                          style={{
+                            background: 'var(--muted)',
+                            borderColor: 'var(--border)',
+                            borderRadius: '5px',
+                            padding: '1px 6px',
+                            fontSize: '0.82em',
+                          }}
                           {...props}
                         >
                           {children}
@@ -156,7 +180,7 @@ export function Message({ content, role, timestamp }: MessageProps) {
                     return <CodeBlock language={language} codeStr={codeStr} />;
                   },
                   p({ children }) {
-                    return <p className="mb-2.5 last:mb-0 leading-[1.7]">{children}</p>;
+                    return <p className="mb-2.5 last:mb-0" style={{ lineHeight: '1.76' }}>{children}</p>;
                   },
                   a({ children, href }) {
                     return (
@@ -164,7 +188,8 @@ export function Message({ content, role, timestamp }: MessageProps) {
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary underline underline-offset-2 hover:opacity-75 transition-opacity"
+                        className="underline underline-offset-2 transition-opacity hover:opacity-70"
+                        style={{ color: 'var(--primary)' }}
                       >
                         {children}
                       </a>
@@ -172,78 +197,104 @@ export function Message({ content, role, timestamp }: MessageProps) {
                   },
                   ul({ children }) {
                     return (
-                      <ul className="list-disc list-outside ml-5 my-2 space-y-1 text-[13.5px]">
+                      <ul className="list-disc list-outside ml-5 my-2.5 space-y-1.5" style={{ fontSize: '13.5px' }}>
                         {children}
                       </ul>
                     );
                   },
                   ol({ children }) {
                     return (
-                      <ol className="list-decimal list-outside ml-5 my-2 space-y-1 text-[13.5px]">
+                      <ol className="list-decimal list-outside ml-5 my-2.5 space-y-1.5" style={{ fontSize: '13.5px' }}>
                         {children}
                       </ol>
                     );
                   },
                   li({ children }) {
-                    return <li className="leading-[1.6]">{children}</li>;
+                    return <li style={{ lineHeight: '1.7' }}>{children}</li>;
                   },
                   h1({ children }) {
                     return (
-                      <h1 className="text-[17px] font-semibold tracking-tight mt-5 mb-2 first:mt-0">
+                      <h1 className="mt-5 mb-2 first:mt-0" style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.026em' }}>
                         {children}
                       </h1>
                     );
                   },
                   h2({ children }) {
                     return (
-                      <h2 className="text-[15px] font-semibold tracking-tight mt-4 mb-1.5 first:mt-0">
+                      <h2 className="mt-4 mb-1.5 first:mt-0" style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '-0.020em' }}>
                         {children}
                       </h2>
                     );
                   },
                   h3({ children }) {
                     return (
-                      <h3 className="text-[14px] font-semibold mt-3 mb-1 first:mt-0">
+                      <h3 className="mt-3 mb-1 first:mt-0" style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.015em' }}>
                         {children}
                       </h3>
                     );
                   },
                   blockquote({ children }) {
                     return (
-                      <blockquote className="border-l-2 border-primary/40 pl-3.5 my-2.5 text-muted-foreground italic text-[13.5px]">
+                      <blockquote
+                        className="my-3 pl-3.5 italic"
+                        style={{
+                          borderLeft: '2.5px solid var(--primary)',
+                          opacity: 0.75,
+                          fontSize: '13.5px',
+                          lineHeight: '1.7',
+                          color: 'var(--muted-foreground)',
+                        }}
+                      >
                         {children}
                       </blockquote>
                     );
                   },
                   hr() {
-                    return <hr className="my-3 border-border" />;
+                    return <hr className="my-4" style={{ borderColor: 'var(--border)' }} />;
                   },
                   table({ children }) {
                     return (
-                      <div className="overflow-x-auto my-3 rounded-lg border border-border">
-                        <table className="text-[12.5px] border-collapse w-full">{children}</table>
+                      <div className="overflow-x-auto my-4 rounded-xl" style={{ border: '1px solid var(--border)' }}>
+                        <table style={{ fontSize: '12.5px', borderCollapse: 'collapse', width: '100%' }}>
+                          {children}
+                        </table>
                       </div>
                     );
                   },
                   thead({ children }) {
-                    return <thead className="bg-muted/60">{children}</thead>;
+                    return <thead style={{ background: 'var(--muted)' }}>{children}</thead>;
                   },
                   th({ children }) {
                     return (
-                      <th className="border-b border-border px-3.5 py-2 text-left font-medium text-foreground/80">
+                      <th
+                        className="text-left"
+                        style={{
+                          padding: '10px 16px',
+                          fontWeight: 600,
+                          fontSize: '12px',
+                          letterSpacing: '-0.010em',
+                          borderBottom: '1px solid var(--border)',
+                          color: 'var(--foreground)',
+                          opacity: 0.80,
+                        }}
+                      >
                         {children}
                       </th>
                     );
                   },
                   td({ children }) {
                     return (
-                      <td className="border-b border-border/50 px-3.5 py-2 last:border-b-0">
+                      <td style={{ padding: '9px 16px', borderBottom: '1px solid var(--border)', opacity: 0.9 }}>
                         {children}
                       </td>
                     );
                   },
                   strong({ children }) {
-                    return <strong className="font-semibold text-foreground">{children}</strong>;
+                    return (
+                      <strong style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+                        {children}
+                      </strong>
+                    );
                   },
                 }}
               >
@@ -253,27 +304,40 @@ export function Message({ content, role, timestamp }: MessageProps) {
           )}
         </div>
 
-        {/* Meta row: timestamp + copy */}
+        {/* Meta row */}
         <div
           className={cn(
-            'flex items-center gap-2 px-1',
+            'flex items-center gap-1.5 px-0.5',
             isUser ? 'flex-row-reverse' : 'flex-row'
           )}
         >
-          <time className="text-[11px] tabular-nums text-muted-foreground/50">{timeStr}</time>
+          <time
+            style={{
+              fontSize: '11px',
+              color: 'var(--muted-foreground)',
+              opacity: 0.45,
+              fontVariantNumeric: 'tabular-nums',
+              letterSpacing: '-0.008em',
+            }}
+          >
+            {timeStr}
+          </time>
           {!isUser && (
             <button
               onClick={handleCopyMessage}
               aria-label="Copy message"
               className={cn(
-                'flex items-center gap-1 text-[11px] transition-all',
+                'flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-150',
                 'opacity-0 group-hover/msg:opacity-100',
-                msgCopied
-                  ? 'text-emerald-400'
-                  : 'text-muted-foreground/50 hover:text-muted-foreground'
               )}
+              style={{
+                fontSize: '11px',
+                color: msgCopied ? 'rgb(52,211,153)' : 'var(--muted-foreground)',
+                background: msgCopied ? 'rgba(52,211,153,0.10)' : 'transparent',
+              }}
             >
-              {msgCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {msgCopied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+              {msgCopied ? 'Copied' : 'Copy'}
             </button>
           )}
         </div>

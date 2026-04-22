@@ -149,11 +149,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const sendChatMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return;
 
-    const activeChat = currentChat ?? createChat(generateChatTitle(text));
+    // Resolve or create the active chat
+    const isFirstMessage = !currentChat || currentChat.messages.length === 0;
+    const smartTitle = generateChatTitle(text);
+    const activeChat = currentChat ?? createChat(smartTitle);
+
     if (!currentChat) {
       syncChats();
       setCurrentChat(activeChat);
       setChats(getAllChats());
+    }
+
+    // If this is the first message of an existing chat, apply the smart title now
+    if (isFirstMessage && currentChat) {
+      updateChat(currentChat.id, { title: smartTitle });
     }
 
     const userMsg = makeMessage('user', text);
@@ -161,8 +170,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const base = prev ?? activeChat;
       return {
         ...base,
+        title: isFirstMessage ? smartTitle : base.title,
         messages: [...base.messages, userMsg],
-        title: base.messages.length === 0 ? text.slice(0, 40) : base.title,
       };
     });
     setIsLoading(true);
@@ -175,21 +184,33 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       });
 
       const assistantMsg = makeMessage('assistant', res.response);
+
+      // Build the next chat state outside the updater (no side-effects inside updaters)
       setCurrentChat((prev) => {
-        const nextChat = {
-          ...(prev ?? activeChat),
-          messages: [...(prev ?? activeChat).messages, assistantMsg],
-        };
-        updateChat(nextChat.id, {
-          title: nextChat.title,
-          messages: nextChat.messages as StoredMessage[],
-        });
-        syncChats();
-        return nextChat;
+        const base = prev ?? activeChat;
+        // Deduplicate by id in case of StrictMode double-invocation
+        const existingIds = new Set(base.messages.map((m) => m.id));
+        const freshMessages = existingIds.has(assistantMsg.id)
+          ? base.messages
+          : [...base.messages, assistantMsg];
+        return { ...base, messages: freshMessages };
       });
 
+      // Persist to storage and sync sidebar — safely outside the updater
+      const latestChat = getAllChats().find((c) => c.id === activeChat.id);
+      if (latestChat) {
+        const merged = {
+          ...latestChat,
+          messages: [
+            ...latestChat.messages.filter((m) => m.id !== assistantMsg.id),
+            assistantMsg,
+          ] as StoredMessage[],
+        };
+        updateChat(merged.id, { title: merged.title, messages: merged.messages });
+      }
+      syncChats();
+
       // Store the session_id echoed by the server.
-      // On subsequent turns this keeps the backend memory buffer alive.
       if (res.session_id && res.session_id !== sessionId) {
         setSessionId(res.session_id);
       }

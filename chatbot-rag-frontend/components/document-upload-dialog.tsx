@@ -64,7 +64,7 @@ function FileTypeIcon({ name }: { name: string }) {
     docx: 'text-sky-400',
   };
   return (
-    <FileText className={cn('w-5 h-5 shrink-0', colors[ext ?? ''] ?? 'text-muted-foreground')} />
+    <FileText className={cn('w-4.5 h-4.5 shrink-0', colors[ext ?? ''] ?? 'text-muted-foreground')} />
   );
 }
 
@@ -147,16 +147,35 @@ export function DocumentUploadDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-border bg-card shadow-xl gap-0">
+      <DialogContent
+        className="sm:max-w-[480px] p-0 overflow-hidden gap-0"
+        style={{
+          borderRadius: '20px',
+          border: '1px solid var(--border)',
+          background: 'var(--card)',
+          boxShadow: '0 24px 48px -12px rgba(0,0,0,0.30), 0 8px 16px -8px rgba(0,0,0,0.18)',
+        }}
+      >
         {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+        <DialogHeader
+          className="px-6 pt-5 pb-4"
+          style={{ borderBottom: '1px solid var(--border)' }}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl btn-gradient flex items-center justify-center shadow-sm">
+            <div
+              className="w-9 h-9 rounded-xl btn-gradient flex items-center justify-center"
+              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.15)' }}
+            >
               <FileUp className="w-4 h-4 text-white" />
             </div>
             <div>
-              <DialogTitle className="text-base font-semibold">Upload Documents</DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              <DialogTitle
+                className="text-[15px] font-semibold"
+                style={{ letterSpacing: '-0.018em' }}
+              >
+                Upload Documents
+              </DialogTitle>
+              <DialogDescription className="text-[12px] text-muted-foreground mt-0.5">
                 PDF, TXT, MD, DOCX · Max {MAX_SIZE_MB} MB each
               </DialogDescription>
             </div>
@@ -175,25 +194,34 @@ export function DocumentUploadDialog({ open, onOpenChange }: Props) {
             onDragLeave={() => setIsDragging(false)}
             onDrop={onDrop}
             className={cn(
-              'flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed',
-              'py-8 cursor-pointer transition-all select-none',
+              'flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed',
+              'py-9 cursor-pointer transition-all duration-200 select-none',
               isDragging
                 ? 'drag-active border-primary'
-                : 'border-border hover:border-primary/50 hover:bg-accent/40'
+                : 'border-border hover:border-primary/45 hover:bg-accent/35'
             )}
           >
-            <div className={cn(
-              'w-10 h-10 rounded-full flex items-center justify-center transition-colors',
-              isDragging ? 'bg-primary/20' : 'bg-muted'
-            )}>
-              <Upload className={cn('w-5 h-5 transition-colors', isDragging ? 'text-primary' : 'text-muted-foreground')} />
+            <div
+              className={cn(
+                'w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200',
+                isDragging ? 'btn-gradient shadow-sm' : 'bg-muted'
+              )}
+            >
+              <Upload
+                className={cn(
+                  'w-5 h-5 transition-colors',
+                  isDragging ? 'text-white' : 'text-muted-foreground/50'
+                )}
+              />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-foreground">
+              <p className="text-[13.5px] font-medium text-foreground tracking-[-0.01em]">
                 {isDragging ? 'Drop to upload' : 'Drop files here'}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                or <span className="text-primary font-medium">browse</span> to choose files
+              <p className="text-[12px] text-muted-foreground mt-1">
+                or{' '}
+                <span className="text-primary font-medium">browse</span>{' '}
+                to choose files
               </p>
             </div>
           </div>
@@ -209,30 +237,38 @@ export function DocumentUploadDialog({ open, onOpenChange }: Props) {
 
           {/* ── File list */}
           {hasFiles && (
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+            <div className="space-y-2 max-h-52 overflow-y-auto pr-0.5">
               {files.map((f, i) => (
                 <div
                   key={`${f.file.name}-${i}`}
                   className={cn(
-                    'flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors',
+                    'flex items-center gap-3 rounded-xl border px-3.5 py-3 text-sm transition-all duration-150',
                     f.status === 'error'
-                      ? 'border-destructive/40 bg-destructive/5'
+                      ? 'border-destructive/30 bg-destructive/5'
                       : f.status === 'success'
-                      ? 'border-[var(--success)]/30 bg-[var(--success)]/5'
-                      : 'border-border bg-muted/40'
+                      ? 'border-[var(--success)]/25 bg-[var(--success)]/5'
+                      : 'border-border bg-muted/30'
                   )}
                 >
                   <FileTypeIcon name={f.file.name} />
 
                   {/* Name + info */}
                   <div className="flex-1 min-w-0">
-                    <p className="truncate font-medium text-foreground text-[13px]">{f.file.name}</p>
+                    <p
+                      className="truncate font-medium text-foreground text-[13px] tracking-[-0.01em]"
+                    >
+                      {f.file.name}
+                    </p>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[11px] text-muted-foreground">{formatBytes(f.file.size)}</span>
+                      <span className="text-[11px] text-muted-foreground/60">
+                        {formatBytes(f.file.size)}
+                      </span>
                       {f.status === 'success' && f.chunks && (
                         <>
-                          <span className="text-muted-foreground/40">·</span>
-                          <span className="text-[11px] text-muted-foreground">{f.chunks} chunks indexed</span>
+                          <span className="text-muted-foreground/25">·</span>
+                          <span className="text-[11px] text-muted-foreground/60">
+                            {f.chunks} chunks indexed
+                          </span>
                         </>
                       )}
                       {f.status === 'error' && (
@@ -242,7 +278,10 @@ export function DocumentUploadDialog({ open, onOpenChange }: Props) {
 
                     {/* Progress bar */}
                     {f.status === 'uploading' && (
-                      <div className="mt-1.5 h-1 w-full rounded-full bg-border overflow-hidden">
+                      <div
+                        className="mt-2 h-[2px] w-full rounded-full overflow-hidden"
+                        style={{ background: 'var(--border)' }}
+                      >
                         <div
                           className="progress-bar"
                           style={{ '--progress': `${f.progress}%` } as React.CSSProperties}
@@ -259,10 +298,13 @@ export function DocumentUploadDialog({ open, onOpenChange }: Props) {
                     {f.status === 'success' && (
                       <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
                     )}
-                    {(f.status === 'idle' || f.status === 'error') && (
+                    {f.status === 'error' && (
+                      <AlertCircle className="w-4 h-4 text-destructive" />
+                    )}
+                    {f.status === 'idle' && (
                       <button
                         onClick={() => removeFile(i)}
-                        className="p-0.5 rounded text-muted-foreground hover:text-destructive transition-colors"
+                        className="p-0.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
                         aria-label="Remove file"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -276,18 +318,24 @@ export function DocumentUploadDialog({ open, onOpenChange }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-6 py-4 flex items-center justify-between gap-3 bg-muted/30">
-          <p className="text-xs text-muted-foreground">
+        <div
+          className="px-6 py-4 flex items-center justify-between gap-3"
+          style={{
+            borderTop: '1px solid var(--border)',
+            background: 'var(--muted)',
+          }}
+        >
+          <p className="text-[12px] text-muted-foreground/60 tracking-[-0.01em]">
             {files.length === 0
               ? 'Documents are added to your knowledge base'
-              : `${files.filter(f => f.status === 'success').length}/${files.length} uploaded`}
+              : `${files.filter(f => f.status === 'success').length} of ${files.length} uploaded`}
           </p>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => { setFiles([]); onOpenChange(false); }}
-              className="h-8 text-xs"
+              className="h-8 text-[12.5px] rounded-xl tracking-[-0.01em]"
             >
               Close
             </Button>
@@ -295,7 +343,7 @@ export function DocumentUploadDialog({ open, onOpenChange }: Props) {
               <Button
                 size="sm"
                 onClick={uploadAll}
-                className="h-8 text-xs btn-gradient text-white hover:opacity-90 transition-opacity gap-1.5"
+                className="h-8 text-[12.5px] btn-gradient text-white hover:opacity-90 transition-opacity gap-1.5 rounded-xl tracking-[-0.01em] shadow-sm"
               >
                 <Upload className="w-3.5 h-3.5" />
                 Upload {pendingCount} file{pendingCount > 1 ? 's' : ''}

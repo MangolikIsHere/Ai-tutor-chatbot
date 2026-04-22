@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { Send, Trash2, AlertCircle, X, Sparkles, Paperclip } from 'lucide-react';
+import { ArrowUp, Trash2, AlertCircle, X, Paperclip } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useChatContext } from '@/lib/chat-context';
 import { DocumentUploadDialog } from '@/components/document-upload-dialog';
@@ -21,7 +21,7 @@ export function MessageInput() {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 168) + 'px';
   }, [input]);
 
   /* ── Submit ────────────────────────────────────────────────── */
@@ -47,68 +47,106 @@ export function MessageInput() {
 
   return (
     <>
-      <div
-        className={cn(
-          'relative w-full bg-background/95',
-          'border-t border-border',
-          'backdrop-blur-sm supports-[backdrop-filter]:bg-background/80'
-        )}
-      >
-        {/* ── Topbar ──────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-4 sm:px-6 h-12 border-b border-border/50">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-primary" aria-hidden />
-            <span className="text-[13px] font-semibold tracking-tight">NeuralChat</span>
-            <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 opacity-90" />
-              <span className="text-[10px] font-medium text-muted-foreground">AI Tutor</span>
-            </span>
-            <span className="hidden md:inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
-              session: {sessionId ? `${sessionId.slice(0, 8)}...` : 'none'}
-            </span>
-          </div>
-          <div className="flex items-center gap-0.5">
-            <Button
-              id="clear-chat-btn"
-              variant="ghost"
-              size="icon"
-              onClick={clearCurrentChat}
-              disabled={isLoading}
-              className="w-8 h-8 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-all"
-              title="Clear conversation"
+      <div className="relative w-full shrink-0">
+        {/* Gradient fade from bottom of chat area into composer */}
+        <div
+          className="absolute inset-x-0 -top-10 h-10 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to bottom, transparent, var(--background))',
+          }}
+        />
+
+        {/* ── Top utility bar ────────────────────────────────────── */}
+        <div className="flex items-center justify-end gap-1.5 px-4 sm:px-6 pt-3 pb-1.5">
+          {/* Session badge */}
+          {sessionId && (
+            <span
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-mono font-medium"
+              style={{
+                background: 'var(--muted)',
+                border: '1px solid var(--border)',
+                color: 'var(--muted-foreground)',
+                letterSpacing: '-0.01em',
+              }}
             >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-            <ThemeToggle />
-          </div>
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"
+              />
+              {sessionId.slice(0, 8)}
+            </span>
+          )}
+          <Button
+            id="clear-chat-btn"
+            variant="ghost"
+            size="icon"
+            onClick={clearCurrentChat}
+            disabled={isLoading}
+            className="w-7 h-7 rounded-lg transition-all duration-150"
+            style={{ color: 'var(--muted-foreground)', opacity: 0.65 }}
+            title="Clear conversation"
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.color = 'var(--destructive)';
+              (e.currentTarget as HTMLElement).style.opacity = '1';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.color = 'var(--muted-foreground)';
+              (e.currentTarget as HTMLElement).style.opacity = '0.65';
+            }}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+          <ThemeToggle />
         </div>
 
         {/* ── Error banner ────────────────────────────────────── */}
         {error && (
-          <div className="mx-4 sm:mx-6 mt-3 flex items-start gap-2.5 rounded-xl border border-destructive/25 bg-destructive/8 px-3.5 py-2.5">
+          <div
+            className="mx-4 sm:mx-6 mb-2.5 flex items-start gap-2.5 rounded-xl px-3.5 py-2.5"
+            style={{
+              background: 'oklch(from var(--destructive) l c h / 0.07)',
+              border: '1px solid oklch(from var(--destructive) l c h / 0.22)',
+            }}
+          >
             <AlertCircle className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-            <p className="flex-1 text-[12.5px] text-destructive leading-snug">{error}</p>
+            <p className="flex-1 text-[13px] text-destructive leading-snug font-medium">{error}</p>
             <button
               onClick={clearError}
               aria-label="Dismiss error"
-              className="text-destructive/60 hover:text-destructive transition-colors mt-0.5"
+              className="text-destructive/50 hover:text-destructive transition-colors mt-0.5 shrink-0"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
 
-        {/* ── Composer ─────────────────────────────────────────── */}
-        <div className="px-4 sm:px-6 pt-3 pb-3">
+        {/* ── Floating composer ─────────────────────────────────── */}
+        <div className="px-3 sm:px-5 pb-4">
           <form onSubmit={handleSubmit}>
+            {/* Composer card */}
             <div
               className={cn(
-                'relative flex items-end gap-2 rounded-2xl border bg-card px-3 py-2.5',
-                'shadow-sm transition-all duration-200',
-                'focus-within:border-primary/60 focus-within:shadow-[0_0_0_3px_oklch(from_var(--primary)_l_c_h_/_0.12)]',
-                isLoading ? 'border-border' : 'border-border hover:border-border-strong'
+                'relative flex items-end gap-2 rounded-[20px] px-3 py-2.5',
+                'transition-all duration-200',
               )}
+              style={{
+                background: 'var(--card)',
+                border: '1.5px solid var(--border-strong)',
+                boxShadow: '0 4px 24px -4px rgba(0,0,0,0.10), 0 1px 6px 0 rgba(0,0,0,0.06)',
+              }}
+              onFocus={() => {}}
             >
+              {/* Inner focus ring handled via CSS below */}
+              <style>{`
+                .composer-card:focus-within {
+                  border-color: var(--primary) !important;
+                  box-shadow: 0 4px 32px -4px rgba(0,0,0,0.12), 0 0 0 3px var(--primary-glow) !important;
+                }
+              `}</style>
+              <div
+                className="composer-card absolute inset-0 rounded-[20px] pointer-events-none"
+                style={{ transition: 'box-shadow 0.2s ease, border-color 0.2s ease' }}
+              />
+
               {/* Attach button */}
               <Button
                 id="attach-doc-btn"
@@ -117,10 +155,8 @@ export function MessageInput() {
                 variant="ghost"
                 onClick={() => setUploadOpen(true)}
                 title="Upload document"
-                className={cn(
-                  'w-8 h-8 shrink-0 mb-0.5 text-muted-foreground/50',
-                  'hover:text-primary hover:bg-primary/10 transition-all rounded-xl'
-                )}
+                className="w-8 h-8 shrink-0 mb-0.5 rounded-xl transition-all duration-150"
+                style={{ color: 'var(--muted-foreground)' }}
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
@@ -137,11 +173,15 @@ export function MessageInput() {
                 rows={1}
                 maxLength={LIMIT}
                 aria-label="Message input"
-                className={cn(
-                  'flex-1 resize-none bg-transparent text-[14px] leading-relaxed outline-none',
-                  'placeholder:text-muted-foreground/40 min-h-[26px]',
-                  'disabled:opacity-50 py-0.5'
-                )}
+                className="flex-1 resize-none bg-transparent outline-none disabled:opacity-50 py-0.5"
+                style={{
+                  fontSize: '14px',
+                  lineHeight: '1.65',
+                  letterSpacing: '-0.008em',
+                  minHeight: '28px',
+                  color: 'var(--foreground)',
+                  caretColor: 'var(--primary)',
+                }}
               />
 
               {/* Send button */}
@@ -151,41 +191,60 @@ export function MessageInput() {
                 size="icon"
                 disabled={!canSend}
                 className={cn(
-                  'w-8 h-8 shrink-0 mb-0.5 rounded-xl transition-all duration-200',
+                  'w-9 h-9 shrink-0 mb-0.5 rounded-full transition-all duration-200',
                   canSend
-                    ? 'btn-gradient text-white shadow-sm hover:opacity-90 active:scale-95'
-                    : 'bg-muted text-muted-foreground/40 cursor-not-allowed'
+                    ? 'btn-gradient text-white shadow-sm hover:opacity-90 hover:scale-[1.06] active:scale-[0.94]'
+                    : 'cursor-not-allowed'
                 )}
+                style={!canSend ? {
+                  background: 'var(--muted)',
+                  color: 'var(--muted-foreground)',
+                  opacity: 0.45,
+                } : {}}
                 title="Send message"
               >
                 {isLoading
                   ? <Spinner className="w-3.5 h-3.5" />
-                  : <Send className="w-3.5 h-3.5" />
+                  : <ArrowUp className="w-4 h-4" />
                 }
               </Button>
             </div>
 
-            {/* Hints row */}
+            {/* Composer placeholder hint */}
+            {!input && (
+              <style>{`
+                #message-input::placeholder {
+                  color: var(--muted-foreground);
+                  opacity: 0.55;
+                }
+              `}</style>
+            )}
+
+            {/* Bottom caption */}
             <div className="flex items-center justify-between mt-2 px-1">
-              <p className="text-[11px] text-muted-foreground/40">
-                <kbd className="font-sans">Enter</kbd> to send
-                &nbsp;·&nbsp;
-                <kbd className="font-sans">Shift+Enter</kbd> for new line
-                &nbsp;·&nbsp;
+              <p
+                className="text-[11.5px] tracking-tight select-none"
+                style={{ color: 'var(--muted-foreground)', opacity: 0.55 }}
+              >
+                <span>↵ send</span>
+                <span className="mx-1.5" style={{ opacity: 0.4 }}>·</span>
+                <span>⇧↵ new line</span>
+                <span className="mx-1.5" style={{ opacity: 0.4 }}>·</span>
                 <button
                   type="button"
                   onClick={() => setUploadOpen(true)}
-                  className="text-primary/60 hover:text-primary transition-colors"
+                  className="transition-colors duration-150 hover:underline underline-offset-2"
+                  style={{ color: 'var(--primary)', opacity: 0.75 }}
                 >
-                  attach a document
+                  attach a doc
                 </button>
               </p>
               {charCount > LIMIT * 0.8 && (
                 <span
-                  className={cn(
-                    'text-[11px] tabular-nums transition-colors',
-                    charCount >= LIMIT ? 'text-destructive' : 'text-muted-foreground/60'
-                  )}
+                  className="text-[11px] tabular-nums font-medium transition-colors"
+                  style={{
+                    color: charCount >= LIMIT ? 'var(--destructive)' : 'var(--muted-foreground)',
+                  }}
                 >
                   {charCount}/{LIMIT}
                 </span>
@@ -195,7 +254,6 @@ export function MessageInput() {
         </div>
       </div>
 
-      {/* Upload dialog */}
       <DocumentUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
     </>
   );
