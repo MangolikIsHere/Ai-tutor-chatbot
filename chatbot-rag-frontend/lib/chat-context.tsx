@@ -1,202 +1,158 @@
+/**
+ * chat-context.tsx — with buffer memory support
+ *
+ * Key changes vs the previous version:
+ *  - ChatResponse now includes session_id (echoed back by the server).
+ *  - On the FIRST plain-chat reply, the server-assigned session_id is stored
+ *    so all subsequent turns in the same conversation share the same backend
+ *    memory buffer.
+ *  - On PDF upload, the upload-returned session_id is stored immediately.
+ *  - clearCurrentChat resets session_id so a fresh memory buffer is used.
+ */
+
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import {
-  Chat,
-  Message,
-  getAllChats,
-  getChatById,
-  createChat,
-  addMessageToChat,
-  deleteChat,
-  clearChat,
-  getOrCreateSessionId,
-  generateSessionId,
-  generateChatTitle,
-} from './storage';
-import { sendMessage, APIError } from './api';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+} from 'react';
+import { sendMessage, uploadPDF, type ChatResponse, type UploadResponse } from '@/lib/api';
 
-interface ChatContextType {
-  // Chat state
-  chats: Chat[];
-  currentChat: Chat | null;
-  sessionId: string;
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-  // Message state
-  isLoading: boolean;
-  error: string | null;
-
-  // Actions
-  createNewChat: () => void;
-  switchChat: (chatId: string) => void;
-  deleteCurrentChat: () => void;
-  clearCurrentChat: () => void;
-  sendChatMessage: (content: string) => Promise<void>;
-  clearError: () => void;
+export interface Message {
+  id:        string;
+  role:      'user' | 'assistant';
+  content:   string;
+  timestamp: number;
 }
 
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
+export interface Chat {
+  id:       string;
+  title:    string;
+  messages: Message[];
+}
 
-export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [currentChat, setCurrentChat] = useState<Chat | null>(null);
-  const [sessionId, setSessionId] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface ChatContextValue {
+  currentChat:      Chat | null;
+  isLoading:        boolean;
+  error:            string | null;
+  /** Active session_id — set after upload OR after first chat reply. */
+  sessionId:        string | null;
+  sendChatMessage:  (text: string) => Promise<void>;
+  clearCurrentChat: () => void;
+  clearError:       () => void;
+  handleUpload:     (file: File, onProgress?: (pct: number) => void) => Promise<UploadResponse>;
+}
 
-  // Initialize on mount
-  useEffect(() => {
-    const id = getOrCreateSessionId();
-    setSessionId(id);
+// ── Context ───────────────────────────────────────────────────────────────────
 
-    const storedChats = getAllChats();
-    setChats(storedChats);
+const ChatContext = createContext<ChatContextValue | null>(null);
 
-    if (storedChats.length > 0) {
-      setCurrentChat(storedChats[0]);
-    } else {
-      const newChat = createChat();
-      setChats([newChat]);
-      setCurrentChat(newChat);
-    }
-  }, []);
+export function useChatContext(): ChatContextValue {
+  const ctx = useContext(ChatContext);
+  if (!ctx) throw new Error('useChatContext must be used inside <ChatProvider>');
+  return ctx;
+}
 
-  const createNewChat = useCallback(() => {
-    const newChat = createChat();
-    setChats(prev => [newChat, ...prev]);
-    setCurrentChat(newChat);
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function makeChat(): Chat {
+  return { id: crypto.randomUUID(), title: 'New chat', messages: [] };
+}
+
+function makeMessage(role: Message['role'], content: string): Message {
+  return { id: crypto.randomUUID(), role, content, timestamp: Date.now() };
+}
+
+// ── Provider ──────────────────────────────────────────────────────────────────
+
+export function ChatProvider({ children }: { children: ReactNode }) {
+  const [currentChat, setCurrentChat] = useState<Chat>(() => makeChat());
+  const [isLoading,   setIsLoading]   = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
+  /**
+   * sessionId is either:
+   *   - null        → no session yet (first message of a fresh chat)
+   *   - uuid string → set after /upload OR after the server echoes one back
+   *                   on the first /chat reply; all subsequent turns reuse it
+   *                   so the backend memory buffer stays continuous.
+   */
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  /* ── Send message ──────────────────────────────────────────────────────── */
+  const sendChatMessage = useCallback(async (text: string) => {
+    if (!text.trim() || isLoading) return;
+
+    const userMsg = makeMessage('user', text);
+    setCurrentChat((prev) => ({
+      ...prev,
+      messages: [...prev.messages, userMsg],
+      title: prev.messages.length === 0 ? text.slice(0, 40) : prev.title,
+    }));
+    setIsLoading(true);
     setError(null);
-  }, []);
 
-  const switchChat = useCallback((chatId: string) => {
-    const chat = getChatById(chatId);
-    if (chat) {
-      setCurrentChat(chat);
-      setError(null);
-    }
-  }, []);
+    try {
+      const res: ChatResponse = await sendMessage({
+        message:    text,
+        session_id: sessionId,   // null on first message → server creates one
+      });
 
-  const deleteCurrentChat = useCallback(() => {
-    if (!currentChat) return;
+      const assistantMsg = makeMessage('assistant', res.response);
+      setCurrentChat((prev) => ({
+        ...prev,
+        messages: [...prev.messages, assistantMsg],
+      }));
 
-    const success = deleteChat(currentChat.id);
-    if (success) {
-      const remaining = getAllChats();
-      setChats(remaining);
-
-      if (remaining.length > 0) {
-        setCurrentChat(remaining[0]);
-      } else {
-        const newChat = createChat();
-        setChats([newChat]);
-        setCurrentChat(newChat);
+      // Store the session_id echoed by the server.
+      // On subsequent turns this keeps the backend memory buffer alive.
+      if (res.session_id && !sessionId) {
+        setSessionId(res.session_id);
       }
-      setError(null);
+    } catch (err: any) {
+      setError(err.message ?? 'Something went wrong.');
+    } finally {
+      setIsLoading(false);
     }
-  }, [currentChat]);
+  }, [isLoading, sessionId]);
 
-  const clearCurrentChat = useCallback(() => {
-    if (!currentChat) return;
-
-    const cleared = clearChat(currentChat.id);
-    if (cleared) {
-      setCurrentChat(cleared);
-      setError(null);
-    }
-  }, [currentChat]);
-
-  const sendChatMessage = useCallback(
-    async (content: string) => {
-      if (!currentChat || !sessionId || !content.trim()) return;
-
-      setError(null);
-      setIsLoading(true);
-
-      try {
-        // Add user message
-        const userMessage: Message = {
-          id: generateSessionId(),
-          content: content.trim(),
-          role: 'user',
-          timestamp: Date.now(),
-        };
-
-        let updatedChat = addMessageToChat(currentChat.id, userMessage);
-        if (updatedChat) {
-          setCurrentChat(updatedChat);
-
-          // Update title if it's the first message
-          if (updatedChat.messages.length === 1) {
-            const title = generateChatTitle(content);
-            updatedChat = addMessageToChat(updatedChat.id, {
-              id: generateSessionId(),
-              content: '',
-              role: 'user',
-              timestamp: Date.now(),
-            });
-            if (updatedChat) {
-              updatedChat.title = title;
-              setCurrentChat(updatedChat);
-            }
-          }
-        }
-
-        // Call API
-        const response = await sendMessage({
-          message: content,
-          session_id: sessionId,
-        });
-
-        // Add assistant message
-        const assistantMessage: Message = {
-          id: generateSessionId(),
-          content: response.response,
-          role: 'assistant',
-          timestamp: Date.now(),
-        };
-
-        updatedChat = addMessageToChat(currentChat.id, assistantMessage);
-        if (updatedChat) {
-          setCurrentChat(updatedChat);
-          setChats(prev =>
-            prev.map(chat => (chat.id === updatedChat.id ? updatedChat : chat))
-          );
-        }
-      } catch (err) {
-        const apiError = err as APIError;
-        setError(apiError.message);
-      } finally {
-        setIsLoading(false);
-      }
+  /* ── Upload PDF ────────────────────────────────────────────────────────── */
+  const handleUpload = useCallback(
+    async (file: File, onProgress?: (pct: number) => void): Promise<UploadResponse> => {
+      const result = await uploadPDF(file, onProgress);
+      setSessionId(result.session_id);   // PDF session takes over
+      return result;
     },
-    [currentChat, sessionId]
+    []
   );
 
-  const clearError = useCallback(() => {
+  /* ── Clear chat ────────────────────────────────────────────────────────── */
+  const clearCurrentChat = useCallback(() => {
+    setCurrentChat(makeChat());
+    setSessionId(null);   // backend will assign a new session on next message
     setError(null);
   }, []);
 
-  const value: ChatContextType = {
-    chats,
-    currentChat,
-    sessionId,
-    isLoading,
-    error,
-    createNewChat,
-    switchChat,
-    deleteCurrentChat,
-    clearCurrentChat,
-    sendChatMessage,
-    clearError,
-  };
+  const clearError = useCallback(() => setError(null), []);
 
-  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
-}
-
-export function useChatContext() {
-  const context = useContext(ChatContext);
-  if (context === undefined) {
-    throw new Error('useChatContext must be used within a ChatProvider');
-  }
-  return context;
+  return (
+    <ChatContext.Provider
+      value={{
+        currentChat,
+        isLoading,
+        error,
+        sessionId,
+        sendChatMessage,
+        clearCurrentChat,
+        clearError,
+        handleUpload,
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
+  );
 }

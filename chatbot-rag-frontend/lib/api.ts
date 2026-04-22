@@ -1,20 +1,21 @@
-const API_BASE = 'https://ai-tutor-chatbot-6eid.onrender.com';
-const API_TIMEOUT = 30000; // 30 seconds
+const API_BASE    = 'https://ai-tutor-chatbot-6eid.onrender.com';
+const API_TIMEOUT = 30_000; // 30 seconds
 
 export interface ChatRequest {
-  message: string;
-  session_id: string;
+  message:    string;
+  session_id: string | null;
 }
 
 export interface ChatResponse {
-  response: string;
-  rag_used?: boolean;
+  response:   string;
+  rag_used?:  boolean;
+  session_id: string;   // ← server always echoes this back
 }
 
 export interface UploadResponse {
-  message: string;
-  filename?: string;
-  chunks?: number;
+  message:    string;
+  session_id: string;
+  chunks:     number;
 }
 
 export class APIError extends Error {
@@ -28,24 +29,32 @@ export class APIError extends Error {
   }
 }
 
-// ─── Chat ────────────────────────────────────────────────────────────────────
+// ─── Chat ─────────────────────────────────────────────────────────────────────
 
 export async function sendMessage(request: ChatRequest): Promise<ChatResponse> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), API_TIMEOUT);
 
+  try {
     const response = await fetch(`${API_BASE}/chat`, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-      signal: controller.signal,
+      body:    JSON.stringify(request),
+      signal:  controller.signal,
     });
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        throw new APIError(
+          errorData.detail || `Rate limited. Please wait${retryAfter ? ` ${retryAfter}s` : ''} and retry.`,
+          429,
+          errorData
+        );
+      }
       throw new APIError(
         errorData.detail || `API error: ${response.status}`,
         response.status,
@@ -55,31 +64,19 @@ export async function sendMessage(request: ChatRequest): Promise<ChatResponse> {
 
     return (await response.json()) as ChatResponse;
   } catch (error) {
+    clearTimeout(timeoutId);
     if (error instanceof APIError) throw error;
-
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new APIError(
-        'Failed to connect to the server. Make sure the backend is running.',
-        undefined,
-        error
-      );
-    }
-
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new APIError(
-        'Request timed out. The server took too long to respond.',
-        undefined,
-        error
-      );
-    }
-
+    if (error instanceof TypeError && error.message.includes('fetch'))
+      throw new APIError('Failed to connect to the server. Make sure the backend is running.', undefined, error);
+    if (error instanceof DOMException && error.name === 'AbortError')
+      throw new APIError('Request timed out. The server took too long to respond.', undefined, error);
     throw new APIError('An unexpected error occurred. Please try again.', undefined, error);
   }
 }
 
-// ─── Document Upload ─────────────────────────────────────────────────────────
+// ─── PDF Upload ───────────────────────────────────────────────────────────────
 
-export async function uploadDocument(
+export async function uploadPDF(
   file: File,
   onProgress?: (pct: number) => void
 ): Promise<UploadResponse> {
@@ -89,12 +86,9 @@ export async function uploadDocument(
 
     const xhr = new XMLHttpRequest();
 
-    // Progress tracking
     if (onProgress) {
       xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          onProgress(Math.round((e.loaded / e.total) * 100));
-        }
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
       });
     }
 
@@ -103,29 +97,19 @@ export async function uploadDocument(
         try {
           resolve(JSON.parse(xhr.responseText) as UploadResponse);
         } catch {
-          resolve({ message: 'Document uploaded successfully.' });
+          reject(new APIError('Invalid response from server after upload.'));
         }
       } else {
         let detail = `Upload failed (${xhr.status})`;
-        try {
-          const body = JSON.parse(xhr.responseText);
-          detail = body.detail || detail;
-        } catch {
-          /* ignore */
-        }
+        try { detail = JSON.parse(xhr.responseText).detail || detail; } catch { /* ignore */ }
         reject(new APIError(detail, xhr.status));
       }
     });
 
-    xhr.addEventListener('error', () =>
-      reject(new APIError('Network error during upload. Please try again.'))
-    );
+    xhr.addEventListener('error',   () => reject(new APIError('Network error during upload. Please try again.')));
+    xhr.addEventListener('timeout', () => reject(new APIError('Upload timed out. Please try a smaller file.')));
 
-    xhr.addEventListener('timeout', () =>
-      reject(new APIError('Upload timed out. Please try a smaller file.'))
-    );
-
-    xhr.timeout = 60000; // 60 s for uploads
+    xhr.timeout = 120_000; // 2 min — first upload triggers model download
     xhr.open('POST', `${API_BASE}/upload`);
     xhr.send(formData);
   });

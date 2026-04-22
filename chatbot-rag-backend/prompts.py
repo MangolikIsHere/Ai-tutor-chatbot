@@ -1,67 +1,29 @@
-ML_KEYWORDS = [
-    # Core
-    "machine learning", "ml", "ai", "deep learning", "dl",
-    "supervised", "unsupervised", "reinforcement learning",
+"""
+prompts.py — system-prompt builders for ChatPDF.
 
-    # Algorithms
-    "regression", "classification", "clustering",
-    "linear regression", "logistic regression",
-    "decision tree", "random forest", "xgboost",
-    "svm", "knn", "naive bayes",
-
-    # Neural
-    "neural network", "cnn", "rnn", "lstm",
-    "transformer", "bert",
-
-    # Concepts
-    "overfitting", "underfitting", "bias variance",
-    "gradient descent", "loss function",
-    "activation function", "dropout",
-    "cross validation",
-
-    # Metrics
-    "precision", "recall", "f1 score",
-    "roc", "auc", "confusion matrix",
-
-    # Data / tools
-    "numpy", "pandas", "sklearn",
-    "scikit learn", "tensorflow", "pytorch",
-
-    # Math
-    "statistics", "probability",
-    "linear algebra", "matrix", "vector",
-    "pca", "dimensionality reduction",
-
-    # NLP / CV
-    "nlp", "computer vision",
-
-    # Educational phrasing
-    "explain", "define", "difference between",
-    "compare", "formula", "intuition",
-    "advantages", "disadvantages",
-    "when to use", "interview question",
-]
+These return the *system* string only. The user message and history
+are passed separately as the `messages` list to ask_llm().
+"""
 
 
-def build_rag_prompt(context: str, query: str) -> str:
-    return f"""You are an expert Machine Learning tutor.
+def system_prompt_with_context(context: str) -> str:
+    """System prompt when a PDF context chunk is available."""
+    return f"""You are a helpful assistant that answers questions based on the provided document.
 
-Use the context below if relevant. If context is insufficient, rely on your own knowledge.
-If the question is not about ML, answer based on your knowledge without using the context.
+Use the context below to answer the user's question. If the context doesn't contain
+enough information, say so clearly and supplement with your general knowledge if appropriate.
+Keep track of the conversation history and refer back to earlier messages when relevant.
 
-Context:
+Relevant document context:
+\"\"\"
 {context}
-
-Question:
-{query}
-
-Give a clear, concise answer with examples where useful."""
+\"\"\""""
 
 
-def build_plain_prompt(query: str) -> str:
-    return f"""You are a helpful assistant.
-
-Question:
-{query}
-
-Give a clear, concise answer."""
+def system_prompt_plain() -> str:
+    """System prompt for plain chat (no PDF uploaded)."""
+    return (
+        "You are a helpful assistant. "
+        "Answer clearly and concisely. "
+        "Keep track of the conversation history and refer back to earlier messages when relevant."
+    )
