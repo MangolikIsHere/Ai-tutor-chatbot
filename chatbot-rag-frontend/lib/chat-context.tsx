@@ -17,9 +17,12 @@ import React, {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from 'react';
 import { sendMessage, uploadPDF, type ChatResponse, type UploadResponse } from '@/lib/api';
+
+const BACKEND_SESSION_STORAGE_KEY = 'rag_backend_session_id';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -83,6 +86,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
    */
   const [sessionId, setSessionId] = useState<string | null>(null);
 
+  // Restore persisted backend session so uploaded-PDF context survives refreshes.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(BACKEND_SESSION_STORAGE_KEY);
+    if (stored) setSessionId(stored);
+  }, []);
+
+  // Keep localStorage synchronized with the active backend session.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (sessionId) {
+      window.localStorage.setItem(BACKEND_SESSION_STORAGE_KEY, sessionId);
+    } else {
+      window.localStorage.removeItem(BACKEND_SESSION_STORAGE_KEY);
+    }
+  }, [sessionId]);
+
   /* ── Send message ──────────────────────────────────────────────────────── */
   const sendChatMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -110,7 +130,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
       // Store the session_id echoed by the server.
       // On subsequent turns this keeps the backend memory buffer alive.
-      if (res.session_id && !sessionId) {
+      if (res.session_id && res.session_id !== sessionId) {
         setSessionId(res.session_id);
       }
     } catch (err: any) {

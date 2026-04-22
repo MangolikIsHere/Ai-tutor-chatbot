@@ -14,6 +14,10 @@ from __future__ import annotations
 import logging
 import os
 from functools import lru_cache
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from groq.types.chat import ChatCompletionMessageParam
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +63,10 @@ def ask_llm(
 
     client = _get_client()
 
-    payload = [{"role": "system", "content": system_prompt}, *messages]
+    payload = cast(
+        list["ChatCompletionMessageParam"],
+        [{"role": "system", "content": system_prompt}, *messages],
+    )
 
     try:
         response = client.chat.completions.create(

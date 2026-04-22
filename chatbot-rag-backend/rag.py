@@ -24,6 +24,8 @@ from functools import lru_cache
 from io import BytesIO
 from typing import Optional
 
+from langchain_core.embeddings import Embeddings
+
 from config import (
     CHUNK_OVERLAP,
     CHUNK_SIZE,
@@ -58,7 +60,7 @@ _MAX_HISTORY_MSGS = MEMORY_MAX_TURNS * 2  # each turn = 1 user + 1 assistant msg
 
 # ── Lazy embedding singleton ──────────────────────────────────────────────────
 
-class _FastEmbeddings:
+class _FastEmbeddings(Embeddings):
     """LangChain-compatible embeddings backed by fastembed — loaded once."""
 
     def __init__(self) -> None:

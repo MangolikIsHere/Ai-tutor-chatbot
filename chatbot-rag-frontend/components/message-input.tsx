@@ -13,7 +13,7 @@ export function MessageInput() {
   const [input, setInput] = useState('');
   const [uploadOpen, setUploadOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { isLoading, sendChatMessage, clearCurrentChat, error, clearError } =
+  const { isLoading, sendChatMessage, clearCurrentChat, error, clearError, sessionId } =
     useChatContext();
 
   /* ── Auto-resize textarea ───────────────────────────────────── */
@@ -62,6 +62,9 @@ export function MessageInput() {
             <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 px-2 py-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 opacity-90" />
               <span className="text-[10px] font-medium text-muted-foreground">AI Tutor</span>
+            </span>
+            <span className="hidden md:inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+              session: {sessionId ? `${sessionId.slice(0, 8)}...` : 'none'}
             </span>
           </div>
           <div className="flex items-center gap-0.5">
