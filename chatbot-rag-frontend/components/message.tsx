@@ -100,10 +100,10 @@ function CodeBlock({ language, codeStr }: { language: string; codeStr: string })
 function AIAvatar() {
   return (
     <div
-      className="flex-shrink-0 w-7 h-7 rounded-full btn-gradient flex items-center justify-center mt-0.5"
-      style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}
+      className="flex-shrink-0 w-8 h-8 rounded-xl btn-gradient flex items-center justify-center mt-1"
+      style={{ boxShadow: '0 2px 10px var(--primary-glow)' }}
     >
-      <Sparkles className="w-3.5 h-3.5 text-white" />
+      <Sparkles className="w-4 h-4 text-white" />
     </div>
   );
 }
@@ -111,10 +111,10 @@ function AIAvatar() {
 function UserAvatar() {
   return (
     <div
-      className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
-      style={{ background: 'var(--surface-02)', border: '1px solid var(--border)' }}
+      className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center mt-1"
+      style={{ background: 'var(--surface-02)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)' }}
     >
-      <User className="w-3.5 h-3.5" style={{ color: 'var(--foreground)', opacity: 0.50 }} />
+      <User className="w-4 h-4" style={{ color: 'var(--foreground)', opacity: 0.6 }} />
     </div>
   );
 }
@@ -159,25 +159,25 @@ export function Message({ content, role, timestamp }: MessageProps) {
         {/* Bubble */}
         <motion.div
           className={cn(
-            'relative px-4 py-3 break-words rounded-2xl',
-            isUser ? 'rounded-tr-md btn-gradient text-white' : 'rounded-tl-md'
+            'relative px-5 py-4 break-words rounded-2xl transition-shadow duration-300',
+            isUser ? 'rounded-tr-md btn-gradient text-white' : 'rounded-tl-md glass border border-border shadow-sm'
           )}
           style={{
-            fontSize: '14px',
-            lineHeight: '1.72',
-            letterSpacing: '-0.009em',
+            fontSize: '14.5px',
+            lineHeight: '1.75',
+            letterSpacing: '-0.01em',
             ...(isUser
-              ? { boxShadow: '0 2px 10px rgba(0,0,0,0.14)' }
+              ? { boxShadow: '0 4px 15px var(--primary-glow)' }
               : {
                   background: 'var(--card)',
                   color: 'var(--card-foreground)',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                 }),
           }}
-          whileHover={!isUser ? {
-            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-          } : {}}
-          transition={{ duration: 0.15 }}
+          whileHover={{
+            boxShadow: isUser ? '0 6px 20px var(--primary-glow)' : 'var(--shadow-md)',
+            scale: 1.005,
+          }}
+          transition={{ duration: 0.2 }}
         >
           {isUser ? (
             <p className="whitespace-pre-wrap">{content}</p>

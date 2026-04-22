@@ -65,25 +65,25 @@ const chipItem = {
 function TypingIndicator() {
   return (
     <motion.div
-      className="flex gap-3 px-4 sm:px-6 py-2 max-w-[780px] mx-auto w-full"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 4 }}
-      transition={{ duration: 0.18, ease: EASE }}
+      className="flex gap-4 px-4 sm:px-6 py-3 max-w-[820px] mx-auto w-full"
+      initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      exit={{ opacity: 0, y: 6, filter: 'blur(2px)' }}
+      transition={{ duration: 0.25, ease: EASE }}
     >
       <div
-        className="flex-shrink-0 w-7 h-7 rounded-full btn-gradient flex items-center justify-center mt-0.5"
-        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.18)' }}
+        className="flex-shrink-0 w-8 h-8 rounded-xl btn-gradient flex items-center justify-center mt-1 shadow-md"
+        style={{ boxShadow: '0 2px 8px var(--primary-glow)' }}
       >
-        <Sparkles className="w-3.5 h-3.5 text-white" />
+        <Sparkles className="w-4 h-4 text-white" />
       </div>
       <div
-        className="rounded-2xl rounded-tl-md px-4 py-3 flex items-center gap-1.5"
-        style={{ background: 'var(--card)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+        className="rounded-2xl rounded-tl-md px-5 py-3.5 flex items-center gap-2 surface-raised"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
       >
-        <span className="typing-dot" />
-        <span className="typing-dot" />
-        <span className="typing-dot" />
+        <span className="typing-dot bg-primary" />
+        <span className="typing-dot bg-primary opacity-60" />
+        <span className="typing-dot bg-primary opacity-30" />
       </div>
     </motion.div>
   );
@@ -100,17 +100,17 @@ function WelcomeScreen({ onSend }: { onSend: (prompt: string) => void }) {
       animate="visible"
     >
       {/* Hero icon */}
-      <motion.div className="relative mb-8" variants={welcomeItem}>
+      <motion.div className="relative mb-10" variants={welcomeItem}>
         <div
-          className="absolute inset-0 rounded-[28px] btn-gradient opacity-20 blur-2xl scale-[2]"
+          className="absolute inset-0 rounded-[32px] btn-gradient opacity-30 blur-3xl scale-[2.2]"
           aria-hidden
         />
         <motion.div
-          className="relative w-16 h-16 rounded-[22px] btn-gradient flex items-center justify-center shadow-lg"
-          whileHover={{ scale: 1.05, rotate: 4 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+          className="relative w-20 h-20 rounded-[28px] btn-gradient flex items-center justify-center shadow-2xl"
+          whileHover={{ scale: 1.08, rotate: 8 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 15 }}
         >
-          <Sparkles className="w-7 h-7 text-white" />
+          <Sparkles className="w-9 h-9 text-white" />
         </motion.div>
       </motion.div>
 
@@ -143,33 +143,33 @@ function WelcomeScreen({ onSend }: { onSend: (prompt: string) => void }) {
             animate="visible"
             onClick={() => onSend(prompt)}
             className={cn(
-              'group text-left rounded-2xl border border-border bg-card',
-              'px-4 py-4 min-h-[76px]',
+              'group text-left rounded-2xl border border-border bg-card/50 backdrop-blur-sm',
+              'px-5 py-5 min-h-[84px] transition-all duration-300',
             )}
             whileHover={{
-              y: -2,
-              boxShadow: '0 8px 24px -6px rgba(0,0,0,0.12)',
+              y: -4,
+              boxShadow: 'var(--shadow-lg)',
               borderColor: 'var(--primary)',
-              backgroundColor: 'var(--accent)',
-              transition: { duration: 0.18, ease: 'easeOut' },
+              backgroundColor: 'var(--card)',
+              scale: 1.02,
             }}
-            whileTap={{ scale: 0.97 }}
-            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+            whileTap={{ scale: 0.98 }}
+            style={{ boxShadow: 'var(--shadow-sm)' }}
           >
-            <div className="flex items-center gap-2.5 mb-1.5">
-              <div className="w-6 h-6 rounded-lg btn-gradient flex items-center justify-center shrink-0 opacity-90">
-                <Icon className="w-3.5 h-3.5 text-white" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-7 h-7 rounded-lg btn-gradient flex items-center justify-center shrink-0 shadow-sm">
+                <Icon className="w-4 h-4 text-white" />
               </div>
               <span
-                className="font-semibold text-foreground"
-                style={{ fontSize: '13.5px', letterSpacing: '-0.012em' }}
+                className="font-bold text-foreground"
+                style={{ fontSize: '14px', letterSpacing: '-0.02em' }}
               >
                 {label}
               </span>
             </div>
             <p
-              className="leading-snug pl-[34px]"
-              style={{ fontSize: '12.5px', color: 'var(--muted-foreground)', opacity: 0.72 }}
+              className="leading-snug pl-[40px]"
+              style={{ fontSize: '12.5px', color: 'var(--muted-foreground)', opacity: 0.7 }}
             >
               {sublabel}
             </p>

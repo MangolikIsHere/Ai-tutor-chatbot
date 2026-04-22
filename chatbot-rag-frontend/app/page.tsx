@@ -108,24 +108,51 @@ function ChatInterface() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-background"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.5, ease: 'easeOut' } }}
+            exit={{
+              opacity: 0,
+              scale: 1.05,
+              filter: 'blur(10px)',
+              transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+            }}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, filter: 'blur(10px)' }}
+              initial={{ scale: 0.8, opacity: 0, filter: 'blur(12px)' }}
               animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-              transition={{ duration: 0.7, ease: EASE }}
-              className="flex flex-col items-center gap-5"
+              transition={{ duration: 0.8, ease: EASE }}
+              className="flex flex-col items-center gap-6"
             >
-              <div className="relative w-20 h-20 rounded-[28px] btn-gradient flex items-center justify-center shadow-2xl">
-                <div className="absolute inset-0 rounded-[28px] btn-gradient opacity-40 blur-xl scale-110" />
-                <Sparkles className="w-9 h-9 text-white relative z-10" />
+              <div className="relative w-24 h-24 rounded-[32px] btn-gradient flex items-center justify-center shadow-2xl">
+                {/* Outer Glow Ring */}
+                <motion.div
+                  className="absolute inset-0 rounded-[32px] btn-gradient opacity-40 blur-2xl"
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 90, 180, 270, 360],
+                    opacity: [0.3, 0.6, 0.3],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                />
+                <Sparkles className="w-11 h-11 text-white relative z-10" />
               </div>
-              <span
-                className="font-semibold text-[22px] text-foreground"
-                style={{ letterSpacing: '-0.03em' }}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="flex flex-col items-center gap-1"
               >
-                NeuralChat
-              </span>
+                <span
+                  className="font-bold text-[26px] text-foreground tracking-tighter"
+                >
+                  NeuralChat
+                </span>
+                <span className="text-[12px] font-medium text-muted-foreground uppercase tracking-[0.2em] opacity-50">
+                  Advanced RAG Assistant
+                </span>
+              </motion.div>
             </motion.div>
           </motion.div>
         )}

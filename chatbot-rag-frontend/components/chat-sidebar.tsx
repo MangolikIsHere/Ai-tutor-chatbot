@@ -65,33 +65,37 @@ export function ChatSidebar() {
         {/* ── Brand header ──────────────────────────────────────── */}
         <div
           className={cn(
-            'flex items-center gap-2.5 px-3.5 shrink-0',
+            'flex items-center gap-3 px-4 shrink-0',
             isCollapsed && 'justify-center px-0',
           )}
-          style={{ height: '54px' }}
+          style={{ height: '64px' }}
         >
           <motion.div
-            className="flex-shrink-0 w-7 h-7 rounded-[10px] btn-gradient flex items-center justify-center"
-            style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.18)' }}
-            whileHover={{ scale: 1.08 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            className="flex-shrink-0 w-8 h-8 rounded-xl btn-gradient flex items-center justify-center shadow-lg"
+            style={{ boxShadow: '0 2px 8px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.2)' }}
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
           >
-            <Sparkles className="w-3.5 h-3.5 text-white" />
+            <Sparkles className="w-4 h-4 text-white" />
           </motion.div>
 
           <AnimatePresence>
             {!isCollapsed && (
-              <motion.span
+              <motion.div
                 key="wordmark"
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -4 }}
-                transition={{ duration: 0.20, ease: EASE }}
-                className="font-semibold text-[15px] select-none"
-                style={{ color: 'var(--sidebar-foreground)', letterSpacing: '-0.024em' }}
+                initial={{ opacity: 0, x: -8, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, x: -6, filter: 'blur(4px)' }}
+                transition={{ duration: 0.25, ease: EASE }}
+                className="flex flex-col min-w-0"
               >
-                NeuralChat
-              </motion.span>
+                <span className="font-bold text-[15px] leading-none tracking-tight" style={{ color: 'var(--sidebar-foreground)' }}>
+                  NeuralChat
+                </span>
+                <span className="text-[10px] font-medium opacity-40 uppercase tracking-widest mt-0.5">
+                  Pro AI
+                </span>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
@@ -223,36 +227,45 @@ export function ChatSidebar() {
                             id={`chat-item-${chat.id}`}
                             onClick={() => switchChat(chat.id)}
                             className={cn(
-                              'w-full flex items-center gap-2 rounded-xl text-left outline-none',
+                              'w-full flex items-center gap-2.5 rounded-xl text-left outline-none transition-all duration-200',
                               'focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                              isCollapsed ? 'justify-center p-2 h-9' : 'px-2.5 py-2 h-9',
+                              isCollapsed ? 'justify-center p-2 h-10' : 'px-3 py-2 h-10',
                             )}
                             style={{
-                              fontSize: '13px',
-                              letterSpacing: '-0.012em',
+                              fontSize: '13.5px',
+                              letterSpacing: '-0.015em',
                               fontWeight: isActive ? 500 : 400,
-                              borderLeft: isActive
-                                ? '2px solid var(--primary)'
-                                : '2px solid transparent',
                               background: isActive ? 'var(--sidebar-accent)' : 'transparent',
                               color: 'var(--sidebar-foreground)',
-                              opacity: isActive ? 1 : 0.55,
+                              opacity: isActive ? 1 : 0.6,
+                              boxShadow: isActive ? 'var(--shadow-sm)' : 'none',
+                              border: isActive ? '1px solid var(--sidebar-border)' : '1px solid transparent',
                             }}
-                            whileHover={!isActive ? {
-                              backgroundColor: 'var(--sidebar-accent)',
-                              opacity: 0.88,
-                            } : {}}
-                            transition={{ duration: 0.12 }}
+                            whileHover={{
+                              backgroundColor: isActive ? 'var(--sidebar-accent)' : 'rgba(var(--sidebar-accent-foreground), 0.04)',
+                              opacity: 1,
+                              x: isActive ? 0 : 2,
+                            }}
+                            whileTap={{ scale: 0.98 }}
                           >
-                            <MessageSquare
-                              className="shrink-0 transition-colors"
-                              style={{
-                                width: isCollapsed ? '16px' : '13px',
-                                height: isCollapsed ? '16px' : '13px',
-                                color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
-                                opacity: isActive ? 1 : 0.40,
-                              }}
-                            />
+                            <div className="relative flex items-center justify-center">
+                              {isActive && (
+                                <motion.div
+                                  layoutId="active-pill"
+                                  className="absolute -left-[14px] w-1 h-4 rounded-full bg-primary"
+                                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                                />
+                              )}
+                              <MessageSquare
+                                className="shrink-0 transition-colors"
+                                style={{
+                                  width: isCollapsed ? '18px' : '14px',
+                                  height: isCollapsed ? '18px' : '14px',
+                                  color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
+                                  opacity: isActive ? 1 : 0.5,
+                                }}
+                              />
+                            </div>
                             {!isCollapsed && (
                               <AnimatePresence mode="wait">
                                 <motion.span
@@ -260,7 +273,7 @@ export function ChatSidebar() {
                                   variants={titleVariants}
                                   initial="hidden"
                                   animate="visible"
-                                  className="truncate flex-1 leading-snug"
+                                  className="truncate flex-1 leading-none"
                                 >
                                   {chat.title}
                                 </motion.span>
@@ -315,38 +328,40 @@ export function ChatSidebar() {
         </ScrollArea>
 
         {/* ── Footer ────────────────────────────────────────────── */}
-        <div style={{ height: '1px', background: 'var(--sidebar-border)', flexShrink: 0 }} />
+        <div style={{ height: '1px', background: 'var(--sidebar-border)', flexShrink: 0, opacity: 0.5 }} />
         <div
           className={cn(
-            'flex items-center px-3 gap-2 shrink-0',
-            isCollapsed && 'justify-center px-0'
+            'flex items-center px-4 shrink-0',
+            isCollapsed ? 'flex-col gap-4 py-4 h-auto' : 'gap-3 h-[72px]'
           )}
-          style={{ height: '52px' }}
         >
-          <AnimatePresence>
+          {/* User Profile */}
+          <div className={cn("flex items-center gap-3 min-w-0 flex-1", isCollapsed && "justify-center")}>
+            <div 
+              className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center btn-gradient shadow-sm"
+              style={{ boxShadow: '0 2px 8px var(--primary-glow)' }}
+            >
+              <span className="text-[13px] font-bold text-white">N</span>
+            </div>
             {!isCollapsed && (
-              <motion.div
-                key="footer-status"
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -4 }}
-                transition={{ duration: 0.18, ease: EASE }}
-                className="flex items-center gap-2 flex-1 min-w-0"
-              >
-                <span className="relative flex h-1.5 w-1.5 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-55" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[13.5px] font-semibold truncate leading-none mb-1">
+                  Neural User
                 </span>
-                <span
-                  className="text-[12px] truncate font-medium"
-                  style={{ color: 'var(--sidebar-foreground)', opacity: 0.42, letterSpacing: '-0.012em' }}
-                >
-                  Connected
-                </span>
-              </motion.div>
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-1.5 w-1.5 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-55" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  </span>
+                  <span className="text-[11px] font-medium opacity-40 uppercase tracking-wider">
+                    Connected
+                  </span>
+                </div>
+              </div>
             )}
-          </AnimatePresence>
+          </div>
 
+          {/* Collapse Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <motion.div whileHover={{ scale: 1.10 }} whileTap={{ scale: 0.92 }}>
@@ -356,12 +371,12 @@ export function ChatSidebar() {
                   variant="ghost"
                   onClick={() => setIsCollapsed(!isCollapsed)}
                   aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                  className="w-7 h-7 shrink-0 rounded-lg hover:bg-sidebar-accent transition-colors"
+                  className="w-8 h-8 shrink-0 rounded-lg hover:bg-sidebar-accent transition-colors"
                   style={{ color: 'var(--sidebar-foreground)', opacity: 0.35 }}
                 >
                   {isCollapsed
-                    ? <PanelLeft className="w-3.5 h-3.5" />
-                    : <PanelLeftClose className="w-3.5 h-3.5" />
+                    ? <PanelLeft className="w-4 h-4" />
+                    : <PanelLeftClose className="w-4 h-4" />
                   }
                 </Button>
               </motion.div>

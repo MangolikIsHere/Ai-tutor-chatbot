@@ -136,22 +136,22 @@ export function MessageInput() {
           <form onSubmit={handleSubmit}>
             {/* Composer card — Framer Motion handles focus glow */}
             <motion.div
-              className="relative flex items-end gap-2 rounded-[20px] px-3 py-2.5"
+              className="relative flex items-end gap-2 rounded-[24px] px-3.5 py-3 transition-all duration-300"
               animate={{
                 borderColor: isFocused ? 'var(--primary)' : 'var(--border-strong)',
                 boxShadow: isFocused
-                  ? '0 4px 32px -4px rgba(0,0,0,0.14), 0 0 0 3px var(--primary-glow)'
-                  : '0 4px 24px -4px rgba(0,0,0,0.10), 0 1px 6px 0 rgba(0,0,0,0.06)',
+                  ? 'var(--shadow-xl), 0 0 0 4px var(--primary-glow)'
+                  : 'var(--shadow-lg)',
+                y: isFocused ? -2 : 0,
               }}
-              transition={{ duration: 0.20, ease: 'easeOut' }}
+              transition={{ duration: 0.3, ease: EASE }}
               style={{
                 background: 'var(--card)',
                 border: '1.5px solid var(--border-strong)',
-                boxShadow: '0 4px 24px -4px rgba(0,0,0,0.10), 0 1px 6px 0 rgba(0,0,0,0.06)',
               }}
             >
               {/* Attach button */}
-              <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}>
+              <motion.div whileHover={{ scale: 1.1, rotate: -5 }} whileTap={{ scale: 0.9 }}>
                 <Button
                   id="attach-doc-btn"
                   type="button"
@@ -159,10 +159,13 @@ export function MessageInput() {
                   variant="ghost"
                   onClick={() => setUploadOpen(true)}
                   title="Upload document"
-                  className="w-8 h-8 shrink-0 mb-0.5 rounded-xl transition-colors duration-150"
-                  style={{ color: isFocused ? 'var(--foreground)' : 'var(--muted-foreground)', opacity: isFocused ? 0.65 : 0.40 }}
+                  className="w-9 h-9 shrink-0 mb-0.5 rounded-xl transition-colors duration-200"
+                  style={{ 
+                    color: isFocused ? 'var(--foreground)' : 'var(--muted-foreground)', 
+                    opacity: isFocused ? 0.8 : 0.4 
+                  }}
                 >
-                  <Paperclip className="w-4 h-4" />
+                  <Paperclip className="w-4.5 h-4.5" />
                 </Button>
               </motion.div>
 
@@ -180,34 +183,33 @@ export function MessageInput() {
                 rows={1}
                 maxLength={LIMIT}
                 aria-label="Message input"
-                className="flex-1 resize-none bg-transparent outline-none disabled:opacity-50 py-0.5"
+                className="flex-1 resize-none bg-transparent outline-none disabled:opacity-50 py-1"
                 style={{
-                  fontSize: '14px',
-                  lineHeight: '1.65',
-                  letterSpacing: '-0.008em',
+                  fontSize: '15px',
+                  lineHeight: '1.6',
+                  letterSpacing: '-0.01em',
                   minHeight: '28px',
                   color: 'var(--foreground)',
                   caretColor: 'var(--primary)',
-                  // Placeholder via CSS
                 }}
               />
-              <style>{`#message-input::placeholder { color: var(--muted-foreground); opacity: ${isFocused ? '0.70' : '0.48'}; transition: opacity 0.2s; }`}</style>
+              <style>{`#message-input::placeholder { color: var(--muted-foreground); opacity: ${isFocused ? '0.6' : '0.4'}; transition: all 0.3s; }`}</style>
 
               {/* Send button */}
               <motion.div
-                whileHover={canSend ? { scale: 1.10, y: -1 } : {}}
-                whileTap={canSend ? { scale: 0.90 } : {}}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                whileHover={canSend ? { scale: 1.1, y: -1 } : {}}
+                whileTap={canSend ? { scale: 0.95 } : {}}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
               >
                 <Button
                   id="send-message-btn"
                   type="submit"
                   size="icon"
                   disabled={!canSend}
-                  className="w-9 h-9 shrink-0 mb-0.5 rounded-full transition-opacity duration-150"
+                  className="w-9 h-9 shrink-0 mb-0.5 rounded-xl transition-all duration-300 shadow-sm"
                   style={canSend
-                    ? { background: 'var(--primary)', color: '#fff' }
-                    : { background: 'var(--muted)', color: 'var(--muted-foreground)', opacity: 0.38 }
+                    ? { background: 'var(--primary)', color: '#fff', boxShadow: '0 4px 12px var(--primary-glow)' }
+                    : { background: 'var(--muted)', color: 'var(--muted-foreground)', opacity: 0.3 }
                   }
                   title="Send message"
                 >
@@ -215,22 +217,22 @@ export function MessageInput() {
                     {isLoading ? (
                       <motion.span
                         key="loading"
-                        initial={{ opacity: 0, scale: 0.7 }}
+                        initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.7 }}
-                        transition={{ duration: 0.14 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ duration: 0.2 }}
                       >
-                        <Spinner className="w-3.5 h-3.5" />
+                        <Spinner className="w-4 h-4" />
                       </motion.span>
                     ) : (
                       <motion.span
                         key="arrow"
-                        initial={{ opacity: 0, scale: 0.7, y: 4 }}
+                        initial={{ opacity: 0, scale: 0.8, y: 5 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.7, y: -4 }}
-                        transition={{ duration: 0.14 }}
+                        exit={{ opacity: 0, scale: 0.8, y: -5 }}
+                        transition={{ duration: 0.2, ease: EASE }}
                       >
-                        <ArrowUp className="w-4 h-4" />
+                        <ArrowUp className="w-4.5 h-4.5" />
                       </motion.span>
                     )}
                   </AnimatePresence>
