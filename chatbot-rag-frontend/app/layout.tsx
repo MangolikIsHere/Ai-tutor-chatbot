@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 
 import { ThemeProvider } from '@/components/theme-provider'
 import { FirebaseAuthProvider } from '@/lib/firebase-auth'
+import { ChatProvider } from '@/lib/chat-context'
 
 import './globals.css'
 
@@ -26,14 +27,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <FirebaseAuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-          >
-            {children}
+          <ThemeProvider>
+            <ChatProvider>
+              {children}
+            </ChatProvider>
           </ThemeProvider>
         </FirebaseAuthProvider>
 

@@ -1,0 +1,10 @@
+{
+  "name": "rag-chatbot-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix chatbot-rag-frontend run dev",
+    "build": "npm --prefix chatbot-rag-frontend run build",
+    "start": "npm --prefix chatbot-rag-frontend run start",
+    "lint": "npm --prefix chatbot-rag-frontend run lint"
+  }
+}
