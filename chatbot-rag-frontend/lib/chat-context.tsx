@@ -1,294 +1,219 @@
-/**
- * chat-context.tsx — with buffer memory support
- *
- * Key changes vs the previous version:
- *  - ChatResponse now includes session_id (echoed back by the server).
- *  - On the FIRST plain-chat reply, the server-assigned session_id is stored
- *    so all subsequent turns in the same conversation share the same backend
- *    memory buffer.
- *  - On PDF upload, the upload-returned session_id is stored immediately.
- *  - clearCurrentChat resets session_id so a fresh memory buffer is used.
- */
-
 'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  type ReactNode,
-} from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { sendMessage, uploadPDF, type ChatResponse, type UploadResponse } from '@/lib/api';
 import {
-  addMessageToChat,
   clearChat,
   createChat,
   deleteChat,
   generateChatTitle,
   getAllChats,
   updateChat,
-  type Chat as StoredChat,
-  type Message as StoredMessage,
 } from '@/lib/storage';
 
-const BACKEND_SESSION_STORAGE_KEY = 'rag_backend_session_id';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 export interface Message {
-  id:        string;
-  role:      'user' | 'assistant';
-  content:   string;
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
   timestamp: number;
 }
 
 export interface Chat {
-  id:       string;
-  title:    string;
+  id: string;
+  title: string;
   messages: Message[];
   createdAt: number;
   updatedAt: number;
+  sessionId?: string | null;
 }
 
 interface ChatContextValue {
-  chats:            Chat[];
-  currentChat:      Chat | null;
-  isLoading:        boolean;
-  error:            string | null;
-  /** Active session_id — set after upload OR after first chat reply. */
-  sessionId:        string | null;
-  sendChatMessage:  (text: string) => Promise<void>;
-  createNewChat:    () => void;
-  switchChat:       (chatId: string) => void;
+  chats: Chat[];
+  currentChat: Chat | null;
+  isLoading: boolean;
+  error: string | null;
+  sendChatMessage: (text: string) => Promise<void>;
+  createNewChat: () => void;
+  switchChat: (chatId: string) => void;
   deleteCurrentChat: () => void;
   clearCurrentChat: () => void;
-  clearError:       () => void;
-  handleUpload:     (file: File, onProgress?: (pct: number) => void) => Promise<UploadResponse>;
+  clearError: () => void;
+  handleUpload: (file: File, onProgress?: (pct: number) => void) => Promise<UploadResponse>;
 }
-
-// ── Context ───────────────────────────────────────────────────────────────────
 
 const ChatContext = createContext<ChatContextValue | null>(null);
 
-export function useChatContext(): ChatContextValue {
+export function useChatContext() {
   const ctx = useContext(ChatContext);
-  if (!ctx) throw new Error('useChatContext must be used inside <ChatProvider>');
+  if (!ctx) throw new Error('useChatContext must be used inside ChatProvider');
   return ctx;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeChat(): Chat {
-  return {
-    id: crypto.randomUUID(),
-    title: 'New chat',
-    messages: [],
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
 }
 
 function makeMessage(role: Message['role'], content: string): Message {
   return { id: crypto.randomUUID(), role, content, timestamp: Date.now() };
 }
 
-// ── Provider ──────────────────────────────────────────────────────────────────
+function buildRequestWithLocalMemory(currentText: string, history: Message[]): string {
+  const trimmed = currentText.trim();
+  if (!trimmed || history.length === 0) return trimmed;
+
+  const recent = history.slice(-8);
+  const memoryLines = recent.map((m) => {
+    const speaker = m.role === 'user' ? 'User' : 'Assistant';
+    const content = m.content.replace(/\s+/g, ' ').trim();
+    return `${speaker}: ${content}`;
+  });
+
+  // Keep payload under backend's 2000-char request limit.
+  const header = 'Use the recent conversation context below as memory when answering.\n';
+  const contextHeader = 'Recent context:\n';
+  const currentHeader = '\n\nCurrent user message:\n';
+
+  let contextBlock = memoryLines.join('\n');
+  let composed = `${header}${contextHeader}${contextBlock}${currentHeader}${trimmed}`;
+
+  if (composed.length <= 1900) return composed;
+
+  // Trim oldest context lines first if too long.
+  while (memoryLines.length > 1 && composed.length > 1900) {
+    memoryLines.shift();
+    contextBlock = memoryLines.join('\n');
+    composed = `${header}${contextHeader}${contextBlock}${currentHeader}${trimmed}`;
+  }
+
+  if (composed.length <= 1900) return composed;
+  return trimmed.slice(0, 1900);
+}
+
+function syncStoredChats(setChats: (v: Chat[]) => void, setCurrentChat: (v: Chat | null) => void, currentId?: string) {
+  const stored = getAllChats() as Chat[];
+  setChats(stored);
+  if (currentId) {
+    setCurrentChat(stored.find(c => c.id === currentId) ?? stored[0] ?? null);
+  } else {
+    setCurrentChat(stored[0] ?? null);
+  }
+}
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChat, setCurrentChat] = useState<Chat | null>(null);
-  const [isLoading,   setIsLoading]   = useState(false);
-  const [error,       setError]       = useState<string | null>(null);
-  /**
-   * sessionId is either:
-   *   - null        → no session yet (first message of a fresh chat)
-   *   - uuid string → set after /upload OR after the server echoes one back
-   *                   on the first /chat reply; all subsequent turns reuse it
-   *                   so the backend memory buffer stays continuous.
-   */
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const syncChats = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const stored = getAllChats();
-    setChats(stored);
-    setCurrentChat((prev) => {
-      if (prev) {
-        const refreshed = stored.find((chat) => chat.id === prev.id);
-        if (refreshed) return refreshed;
-      }
-      return stored[0] ?? null;
-    });
-  }, []);
-
-  // Restore persisted backend session so uploaded-PDF context survives refreshes.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(BACKEND_SESSION_STORAGE_KEY);
-    if (stored) setSessionId(stored);
-  }, []);
-
-  // Load persisted chats on mount and force a new chat for a clean slate.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = getAllChats();
-    const topChat = stored[0];
-
-    // If the most recent chat is already empty, just use it.
-    // Otherwise, create a fresh one. This prevents spamming empty chats on reload.
-    if (topChat && topChat.messages.length === 0) {
+    const stored = getAllChats() as Chat[];
+    if (stored.length > 0) {
       setChats(stored);
-      setCurrentChat(topChat);
-      setSessionId(null);
+      setCurrentChat(stored[0]);
     } else {
-      const newChat = createChat('New Chat');
-      setChats(getAllChats());
-      setCurrentChat(newChat);
-      setSessionId(null);
+      const chat = createChat('New Chat') as Chat;
+      setChats([chat]);
+      setCurrentChat(chat);
     }
   }, []);
 
-  // Keep localStorage synchronized with the active backend session.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (sessionId) {
-      window.localStorage.setItem(BACKEND_SESSION_STORAGE_KEY, sessionId);
-    } else {
-      window.localStorage.removeItem(BACKEND_SESSION_STORAGE_KEY);
-    }
-  }, [sessionId]);
+  const createNewChat = useCallback(() => {
+    const chat = createChat('New Chat') as Chat;
+    syncStoredChats(setChats, setCurrentChat, chat.id);
+    setError(null);
+  }, []);
 
-  /* ── Send message ──────────────────────────────────────────────────────── */
+  const switchChat = useCallback((chatId: string) => {
+    const chat = (getAllChats() as Chat[]).find(c => c.id === chatId) ?? null;
+    setCurrentChat(chat);
+    setError(null);
+  }, []);
+
   const sendChatMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return;
 
-    // Resolve or create the active chat
-    const isFirstMessage = !currentChat || currentChat.messages.length === 0;
-    const smartTitle = generateChatTitle(text);
-    const activeChat = currentChat ?? createChat(smartTitle);
-
-    if (!currentChat) {
-      syncChats();
-      setCurrentChat(activeChat);
-      setChats(getAllChats());
+    let active = currentChat;
+    if (!active) {
+      active = createChat('New Chat') as Chat;
+      setCurrentChat(active);
+      setChats(getAllChats() as Chat[]);
     }
 
-    // If this is the first message of an existing chat, apply the smart title now
-    if (isFirstMessage && currentChat) {
-      updateChat(currentChat.id, { title: smartTitle });
-    }
-
+    const first = active.messages.length === 0;
+    const title = first ? generateChatTitle(text) : active.title;
     const userMsg = makeMessage('user', text);
-    setCurrentChat((prev) => {
-      const base = prev ?? activeChat;
-      return {
-        ...base,
-        title: isFirstMessage ? smartTitle : base.title,
-        messages: [...base.messages, userMsg],
-      };
-    });
+
+    // Always keep a deterministic session id per chat so memory works
+    // from the very first turn, even if the backend doesn't echo one.
+    const stableSessionId = active.sessionId ?? active.id;
+
+    const optimistic: Chat = {
+      ...active,
+      title,
+      sessionId: stableSessionId,
+      messages: [...active.messages, userMsg],
+    };
+
+    setCurrentChat(optimistic);
     setIsLoading(true);
     setError(null);
 
     try {
+      const requestMessage = buildRequestWithLocalMemory(text, active.messages);
+
       const res: ChatResponse = await sendMessage({
-        message:    text,
-        session_id: sessionId,   // null on first message → server creates one
+        message: requestMessage,
+        session_id: stableSessionId,
       });
 
       const assistantMsg = makeMessage('assistant', res.response);
+      const finalChat: Chat = {
+        ...optimistic,
+        sessionId: res.session_id || stableSessionId,
+        messages: [...optimistic.messages, assistantMsg],
+      };
 
-      // Build the full messages list with both user and assistant messages
-      // (Note: userMsg was already added to React state above)
-      const finalMessages = [
-        ...activeChat.messages.filter((m) => m.id !== userMsg.id && m.id !== assistantMsg.id),
-        userMsg,
-        assistantMsg,
-      ] as StoredMessage[];
-
-      // Update React state with the complete messages
-      setCurrentChat((prev) => {
-        const base = prev ?? activeChat;
-        return { ...base, messages: finalMessages };
-      });
-
-      // Persist to localStorage immediately (don't rely on React state which is async)
-      updateChat(activeChat.id, { title: activeChat.title, messages: finalMessages });
-      syncChats();
-
-      // Store the session_id echoed by the server.
-      if (res.session_id && res.session_id !== sessionId) {
-        setSessionId(res.session_id);
-      }
+      updateChat(active.id, finalChat);
+      syncStoredChats(setChats, setCurrentChat, active.id);
     } catch (err: any) {
-      setError(err.message ?? 'Something went wrong.');
+      setCurrentChat(active);
+      setError(err?.message ?? 'Something went wrong.');
     } finally {
       setIsLoading(false);
     }
-  }, [currentChat, isLoading, sessionId, syncChats]);
+  }, [currentChat, isLoading]);
 
-  const createNewChat = useCallback(() => {
-    const chat = createChat('New Chat');
-    syncChats();
-    setCurrentChat(chat);
-    setSessionId(null);
-    setError(null);
-  }, [syncChats]);
+  const handleUpload = useCallback(async (file: File, onProgress?: (pct: number) => void) => {
+    if (!currentChat) throw new Error('No active chat');
+    const result = await uploadPDF(file, onProgress);
+    updateChat(currentChat.id, { sessionId: result.session_id });
+    syncStoredChats(setChats, setCurrentChat, currentChat.id);
+    return result;
+  }, [currentChat]);
 
-  const switchChat = useCallback((chatId: string) => {
-    const chat = getAllChats().find((item) => item.id === chatId) ?? null;
-    setCurrentChat(chat);
+  const clearCurrentChat = useCallback(() => {
+    if (!currentChat) return;
+    clearChat(currentChat.id);
+    updateChat(currentChat.id, { title: 'New Chat', sessionId: null });
+    syncStoredChats(setChats, setCurrentChat, currentChat.id);
     setError(null);
-  }, []);
+  }, [currentChat]);
 
   const deleteCurrentChat = useCallback(() => {
     if (!currentChat) return;
     deleteChat(currentChat.id);
-    syncChats();
-    setCurrentChat(getAllChats()[0] ?? null);
-  }, [currentChat, syncChats]);
-
-  /* ── Upload PDF ────────────────────────────────────────────────────────── */
-  const handleUpload = useCallback(
-    async (file: File, onProgress?: (pct: number) => void): Promise<UploadResponse> => {
-      const result = await uploadPDF(file, onProgress);
-      setSessionId(result.session_id);   // PDF session takes over
-      return result;
-    },
-    []
-  );
-
-  /* ── Clear chat ────────────────────────────────────────────────────────── */
-  const clearCurrentChat = useCallback(() => {
-    if (currentChat) clearChat(currentChat.id);
-    const newChat = createChat('New Chat');
-    syncChats();
-    setCurrentChat(newChat);
-    setSessionId(null);   // backend will assign a new session on next message
+    const remaining = getAllChats() as Chat[];
+    if (remaining.length === 0) {
+      const chat = createChat('New Chat') as Chat;
+      setChats([chat]);
+      setCurrentChat(chat);
+    } else {
+      setChats(remaining);
+      setCurrentChat(remaining[0]);
+    }
     setError(null);
-  }, [currentChat, syncChats]);
+  }, [currentChat]);
 
   const clearError = useCallback(() => setError(null), []);
 
   return (
-    <ChatContext.Provider
-      value={{
-        chats,
-        currentChat,
-        isLoading,
-        error,
-        sessionId,
-        sendChatMessage,
-        createNewChat,
-        switchChat,
-        deleteCurrentChat,
-        clearCurrentChat,
-        clearError,
-        handleUpload,
-      }}
-    >
+    <ChatContext.Provider value={{ chats, currentChat, isLoading, error, sendChatMessage, createNewChat, switchChat, deleteCurrentChat, clearCurrentChat, clearError, handleUpload }}>
       {children}
     </ChatContext.Provider>
   );

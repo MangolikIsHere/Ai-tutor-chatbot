@@ -1,0 +1,5 @@
+node_modules/
+chatbot-rag-frontend/node_modules/
+.next/
+chatbot-rag-frontend/.next/
+.env

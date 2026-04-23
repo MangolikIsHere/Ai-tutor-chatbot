@@ -78,6 +78,14 @@ export function ProfileMenu({ onSignIn, onSignUp }: ProfileMenuProps) {
               <LogIn className="h-4 w-4" />
               Sign in
             </DropdownMenuItem>
+            <DropdownMenuItem
+              id="profile-signout"
+              className="rounded-lg"
+              onClick={() => setStoredAuthUser(null)}
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
             <DropdownMenuItem id="profile-signup" onClick={onSignUp} className="rounded-lg">
               <UserPlus className="h-4 w-4" />
               Sign up
