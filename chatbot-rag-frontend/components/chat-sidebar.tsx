@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,8 @@ const itemVariants = {
 };
 
 export function ChatSidebar() {
+  const router = useRouter();
+
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -81,6 +84,11 @@ export function ChatSidebar() {
     return () =>
       document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  async function handleLogout() {
+    await logout();
+    router.push('/');
+  }
 
   return (
     <>
@@ -195,7 +203,7 @@ export function ChatSidebar() {
           ref={panelRef}
           className="border-t border-sidebar-border p-3 relative"
         >
-          {/* Elite Menu */}
+          {/* Elite Panel */}
           <AnimatePresence>
             {!isCollapsed && profileOpen && (
               <motion.div
@@ -205,29 +213,41 @@ export function ChatSidebar() {
                 transition={{ duration: 0.18 }}
                 className="absolute bottom-[74px] left-3 right-3 rounded-2xl border border-sidebar-border bg-background shadow-2xl p-2 z-50"
               >
-                <button className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm">
+                <button
+                  onClick={() => router.push('/account')}
+                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
+                >
                   <UserCircle2 className="w-4 h-4 shrink-0" />
                   <span>My Account</span>
                 </button>
 
-                <button className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm">
+                <button
+                  onClick={() => router.push('/billing')}
+                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
+                >
                   <CreditCard className="w-4 h-4 shrink-0" />
                   <span>Subscription</span>
                 </button>
 
-                <button className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm">
+                <button
+                  onClick={() => router.push('/usage')}
+                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
+                >
                   <BarChart3 className="w-4 h-4 shrink-0" />
                   <span>Usage</span>
                 </button>
 
-                <button className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm">
+                <button
+                  onClick={() => router.push('/settings')}
+                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
+                >
                   <Settings className="w-4 h-4 shrink-0" />
                   <span>Settings</span>
                 </button>
 
                 <button
-                  onClick={logout}
-                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-red-500/10 text-red-400 text-sm"
+                  onClick={handleLogout}
+                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-red-500/10 text-red-400 text-sm transition"
                 >
                   <LogOut className="w-4 h-4 shrink-0" />
                   <span>Logout</span>
@@ -236,7 +256,7 @@ export function ChatSidebar() {
             )}
           </AnimatePresence>
 
-          {/* Profile Button */}
+          {/* Profile Trigger */}
           <button
             onClick={() => setProfileOpen(!profileOpen)}
             className={cn(
