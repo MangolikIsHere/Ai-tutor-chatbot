@@ -1,22 +1,25 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+
 import { ChatSidebar } from '@/components/chat-sidebar';
 import { MessageList } from '@/components/message-list';
 import { MessageInput } from '@/components/message-input';
 import { ProfileMenu } from '@/components/profile-menu';
+
 import { ChatProvider } from '@/lib/chat-context';
+
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+
 import { Menu, Sparkles } from 'lucide-react';
 
-// ─── Animation variants ───────────────────────────────────────────────────────
-
-const EASE = [0.22, 1, 0.36, 1] as const; // Custom ease — fast-out, stays crisp
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 const sidebarVariants = {
-  hidden:  { x: -16, opacity: 0, filter: 'blur(4px)' },
+  hidden: { x: -16, opacity: 0, filter: 'blur(4px)' },
   visible: {
     x: 0,
     opacity: 1,
@@ -26,7 +29,7 @@ const sidebarVariants = {
 };
 
 const mainVariants = {
-  hidden:  { opacity: 0, y: 8, filter: 'blur(4px)' },
+  hidden: { opacity: 0, y: 8, filter: 'blur(4px)' },
   visible: {
     opacity: 1,
     y: 0,
@@ -36,33 +39,27 @@ const mainVariants = {
 };
 
 const composerVariants = {
-  hidden:  { opacity: 0, y: 14 },
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.40, ease: EASE, delay: 0.22 },
+    transition: { duration: 0.4, ease: EASE, delay: 0.22 },
   },
 };
 
 const mobileNavVariants = {
-  hidden:  { opacity: 0, y: -6 },
+  hidden: { opacity: 0, y: -6 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.32, ease: EASE, delay: 0.10 },
+    transition: { duration: 0.32, ease: EASE, delay: 0.1 },
   },
 };
 
-// ─── Mobile navbar ────────────────────────────────────────────────────────────
-
 function MobileNavbar({
   onMenuClick,
-  onSignIn,
-  onSignUp,
 }: {
   onMenuClick: () => void;
-  onSignIn: () => void;
-  onSignUp: () => void;
 }) {
   return (
     <motion.div
@@ -70,55 +67,49 @@ function MobileNavbar({
       initial="hidden"
       animate="visible"
       className="md:hidden flex items-center justify-between gap-2 h-12 px-4 shrink-0"
-      style={{ borderBottom: '1px solid var(--border)', background: 'var(--background)' }}
+      style={{
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--background)',
+      }}
     >
       <div className="flex items-center gap-2 min-w-0">
         <Button
-          id="mobile-menu-btn"
           size="icon"
           variant="ghost"
           onClick={onMenuClick}
           className="w-8 h-8 text-muted-foreground hover:text-foreground"
-          aria-label="Open menu"
         >
           <Menu className="w-4 h-4" />
         </Button>
+
         <span
           className="font-semibold"
-          style={{ fontSize: '14px', letterSpacing: '-0.020em' }}
+          style={{ fontSize: '14px', letterSpacing: '-0.02em' }}
         >
           NeuralChat
         </span>
       </div>
 
-      <ProfileMenu onSignIn={onSignIn} onSignUp={onSignUp} />
+      <ProfileMenu />
     </motion.div>
   );
 }
 
-// ─── Chat Interface ───────────────────────────────────────────────────────────
-
 function ChatInterface() {
+  const router = useRouter();
+
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [appState, setAppState] = useState<'initial' | 'splash' | 'app'>('initial');
-
-  const handleSignIn = React.useCallback(() => {
-    // Placeholder hook for Firebase auth modal/routing.
-    console.info('Sign in clicked');
-  }, []);
-
-  const handleSignUp = React.useCallback(() => {
-    // Placeholder hook for Firebase auth modal/routing.
-    console.info('Sign up clicked');
-  }, []);
+  const [appState, setAppState] = useState<'initial' | 'splash' | 'app'>(
+    'initial'
+  );
 
   useEffect(() => {
-    // Show splash screen after hydration
     setAppState('splash');
-    // Transition to app
+
     const timer = setTimeout(() => {
       setAppState('app');
     }, 1200);
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -127,7 +118,6 @@ function ChatInterface() {
       <AnimatePresence>
         {appState === 'splash' && (
           <motion.div
-            key="splash"
             className="fixed inset-0 z-50 flex items-center justify-center bg-background"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -135,47 +125,28 @@ function ChatInterface() {
               opacity: 0,
               scale: 1.05,
               filter: 'blur(10px)',
-              transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+              transition: { duration: 0.6, ease: EASE },
             }}
           >
             <motion.div
-              initial={{ scale: 0.8, opacity: 0, filter: 'blur(12px)' }}
-              animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.8, ease: EASE }}
               className="flex flex-col items-center gap-6"
             >
               <div className="relative w-24 h-24 rounded-[32px] btn-gradient flex items-center justify-center shadow-2xl">
-                {/* Outer Glow Ring */}
-                <motion.div
-                  className="absolute inset-0 rounded-[32px] btn-gradient opacity-40 blur-2xl"
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 90, 180, 270, 360],
-                    opacity: [0.3, 0.6, 0.3],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "linear"
-                  }}
-                />
-                <Sparkles className="w-11 h-11 text-white relative z-10" />
+                <Sparkles className="w-11 h-11 text-white" />
               </div>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-                className="flex flex-col items-center gap-1"
-              >
-                <span
-                  className="font-bold text-[26px] text-foreground tracking-tighter"
-                >
+
+              <div className="flex flex-col items-center gap-1">
+                <span className="font-bold text-[26px] tracking-tighter">
                   NeuralChat
                 </span>
-                <span className="text-[12px] font-medium text-muted-foreground uppercase tracking-[0.2em] opacity-50">
+
+                <span className="text-[12px] uppercase tracking-[0.2em] opacity-50 text-muted-foreground">
                   Advanced RAG Assistant
                 </span>
-              </motion.div>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -185,9 +156,9 @@ function ChatInterface() {
         className="flex h-[100dvh] overflow-hidden bg-background"
         initial={{ opacity: 0 }}
         animate={{ opacity: appState === 'app' ? 1 : 0 }}
-        transition={{ duration: 0.28, ease: 'easeOut' }}
+        transition={{ duration: 0.28 }}
       >
-        {/* ── Desktop sidebar ─────────────────────────────────────── */}
+        {/* Desktop Sidebar */}
         <motion.div
           className="hidden md:flex"
           variants={sidebarVariants}
@@ -197,41 +168,42 @@ function ChatInterface() {
           <ChatSidebar />
         </motion.div>
 
-        {/* ── Mobile sidebar sheet ─────────────────────────────────── */}
+        {/* Mobile Sidebar */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent
             side="left"
             className="p-0 w-[260px] border-r border-sidebar-border bg-sidebar"
-            aria-describedby={undefined}
           >
             <SheetTitle className="sr-only">Navigation</SheetTitle>
+
             <div className="h-full">
               <ChatSidebar />
             </div>
           </SheetContent>
         </Sheet>
 
-        {/* ── Main area ────────────────────────────────────────────── */}
+        {/* Main */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
-          {/* Mobile navbar */}
-          <MobileNavbar
-            onMenuClick={() => setMobileOpen(true)}
-            onSignIn={handleSignIn}
-            onSignUp={handleSignUp}
-          />
+          <MobileNavbar onMenuClick={() => setMobileOpen(true)} />
 
-          {/* Desktop top bar */}
+          {/* Desktop Top Bar */}
           <motion.div
             className="hidden md:flex items-center justify-end h-12 px-5 shrink-0"
-            style={{ borderBottom: '1px solid var(--border)', background: 'var(--background)' }}
+            style={{
+              borderBottom: '1px solid var(--border)',
+              background: 'var(--background)',
+            }}
             initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: appState === 'app' ? 1 : 0, y: appState === 'app' ? 0 : -6 }}
+            animate={{
+              opacity: appState === 'app' ? 1 : 0,
+              y: appState === 'app' ? 0 : -6,
+            }}
             transition={{ duration: 0.24, ease: EASE, delay: 0.1 }}
           >
-            <ProfileMenu onSignIn={handleSignIn} onSignUp={handleSignUp} />
+            <ProfileMenu />
           </motion.div>
 
-          {/* Message thread */}
+          {/* Messages */}
           <motion.div
             className="flex-1 min-h-0 overflow-hidden"
             variants={mainVariants}
@@ -241,7 +213,7 @@ function ChatInterface() {
             <MessageList />
           </motion.div>
 
-          {/* Composer */}
+          {/* Input */}
           <motion.div
             variants={composerVariants}
             initial="hidden"
@@ -254,8 +226,6 @@ function ChatInterface() {
     </>
   );
 }
-
-// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function Home() {
   return (

@@ -50,18 +50,20 @@ export function getStoredAuthUser(): AuthUser | null {
 }
 
 export function getDisplayName(user: AuthUser | null): string {
-  if (!user) return 'Neural User';
+  if (!user) return 'Guest';
+
   if (user.displayName && user.displayName.trim().length > 0) {
     return user.displayName.trim();
   }
 
   const localPart = user.email.split('@')[0] ?? '';
+
   const pretty = localPart
     .replace(/[._-]+/g, ' ')
     .trim()
     .replace(/\b\w/g, (m) => m.toUpperCase());
 
-  return pretty || 'Neural User';
+  return pretty || 'Guest';
 }
 
 export function useAuthUser() {

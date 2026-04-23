@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth'
 
 import { auth } from './firebase'
+import { setStoredAuthUser } from './auth-user'
 
 const AuthContext = createContext<any>(null)
 
@@ -21,6 +22,17 @@ export function FirebaseAuthProvider({ children }: any) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u: User | null) => {
       setUser(u)
+
+      if (u) {
+        setStoredAuthUser({
+          email: u.email || '',
+          displayName: u.displayName || '',
+          photoURL: u.photoURL || '',
+        })
+      } else {
+        setStoredAuthUser(null)
+      }
+
       setLoading(false)
     })
 

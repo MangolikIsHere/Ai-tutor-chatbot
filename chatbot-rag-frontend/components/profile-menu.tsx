@@ -2,9 +2,12 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
+
 import {
   LogIn,
   LogOut,
+  UserPlus,
   UserCircle2
 } from 'lucide-react'
 
@@ -21,13 +24,9 @@ import {
 
 import { useFirebaseAuth } from '@/lib/firebase-auth'
 
-interface ProfileMenuProps {
-  onSignIn?: () => void
-  onSignUp?: () => void
-}
-
-export function ProfileMenu({}: ProfileMenuProps) {
-  const { user, login, logout } = useFirebaseAuth()
+export function ProfileMenu() {
+  const router = useRouter()
+  const { user, logout } = useFirebaseAuth()
 
   const displayName =
     user?.displayName ||
@@ -76,20 +75,27 @@ export function ProfileMenu({}: ProfileMenuProps) {
         <DropdownMenuSeparator />
 
         {!user ? (
-          <DropdownMenuItem onClick={login}>
-            <LogIn className="h-4 w-4 mr-2" />
-            Sign in with Google
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem onClick={() => router.push('/auth?tab=signin')}>
+              <LogIn className="h-4 w-4 mr-2" />
+              Sign In
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => router.push('/auth?tab=signup')}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Sign Up
+            </DropdownMenuItem>
+          </>
         ) : (
           <>
-            <DropdownMenuItem disabled>
+            <DropdownMenuItem>
               <UserCircle2 className="h-4 w-4 mr-2" />
               Account
             </DropdownMenuItem>
 
             <DropdownMenuItem onClick={logout}>
               <LogOut className="h-4 w-4 mr-2" />
-              Sign out
+              Log Out
             </DropdownMenuItem>
           </>
         )}
