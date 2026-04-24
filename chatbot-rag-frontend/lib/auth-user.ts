@@ -49,15 +49,43 @@ export function getStoredAuthUser(): AuthUser | null {
   return parseStoredUser(window.localStorage.getItem(AUTH_USER_STORAGE_KEY));
 }
 
+function getManualName(email: string): string {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(`manual_name_${email.toLowerCase()}`) || '';
+}
+
+function getNeuralUserDisplayName(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    const neuralUser = JSON.parse(window.localStorage.getItem('neural_user') || '{}');
+    return neuralUser.displayName || '';
+  } catch {
+    return '';
+  }
+}
+
 export function getDisplayName(user: AuthUser | null): string {
   if (!user) return 'Guest';
 
+  // 1. stored displayName
   if (user.displayName && user.displayName.trim().length > 0) {
     return user.displayName.trim();
   }
 
-  const localPart = user.email.split('@')[0] ?? '';
+  // 2. manually saved signup name
+  const manualName = getManualName(user.email);
+  if (manualName && manualName.trim().length > 0) {
+    return manualName.trim();
+  }
 
+  // 3. Neural User
+  const neuralName = getNeuralUserDisplayName();
+  if (neuralName && neuralName.trim().length > 0) {
+    return neuralName.trim();
+  }
+
+  // 4. email local part prettified
+  const localPart = user.email.split('@')[0] ?? '';
   const pretty = localPart
     .replace(/[._-]+/g, ' ')
     .trim()

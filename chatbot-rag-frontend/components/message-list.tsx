@@ -185,18 +185,11 @@ function WelcomeScreen({
             animate="visible"
             onClick={() => onSend(prompt)}
             className={cn(
-              'group text-left rounded-2xl border border-border bg-card/50 backdrop-blur-sm',
-              'px-5 py-5 min-h-[84px] transition-all duration-300',
+              'group text-left rounded-2xl border border-border bg-card text-card-foreground',
+              'px-5 py-5 min-h-[84px] transition-all duration-200',
+              'hover:bg-accent hover:text-accent-foreground hover:shadow-lg hover:scale-[1.02] hover:border-primary/40'
             )}
-            whileHover={{
-              y: -2,
-              boxShadow: 'var(--shadow-md)',
-              borderColor: 'color-mix(in oklch, var(--primary) 40%, var(--border) 60%)',
-              backgroundColor: 'var(--card)',
-              scale: 1.01,
-            }}
             whileTap={{ scale: 0.98 }}
-            style={{ boxShadow: 'var(--shadow-sm)' }}
           >
             <div className="flex items-center gap-3 mb-2">
               <div className="w-7 h-7 rounded-lg btn-gradient flex items-center justify-center shrink-0 shadow-sm">

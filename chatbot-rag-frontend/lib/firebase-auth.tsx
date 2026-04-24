@@ -30,32 +30,47 @@ const AuthContext =
     null
   )
 
-function saveUserToLocal(
-  user: User
-) {
+function getManualName(
+  email: string
+): string {
+  if (typeof window === 'undefined')
+    return ''
+
+  return (
+    localStorage.getItem(
+      `manual_name_${email.toLowerCase()}`
+    ) || ''
+  )
+}
+
+function saveNeuralUser(user: User) {
   if (typeof window === 'undefined')
     return
+
+  let finalName =
+    user.displayName?.trim() || ''
+
+  if (!finalName && user.email) {
+    finalName = getManualName(
+      user.email
+    )
+  }
 
   localStorage.setItem(
     'neural_user',
     JSON.stringify({
       uid: user.uid,
       email: user.email || '',
-      displayName:
-        user.displayName || '',
-      photoURL:
-        user.photoURL || '',
+      displayName: finalName,
+      photoURL: user.photoURL || '',
     })
   )
-}
 
-function clearLocalUser() {
-  if (typeof window === 'undefined')
-    return
-
-  localStorage.removeItem(
-    'neural_user'
-  )
+  setStoredAuthUser({
+    email: user.email || '',
+    displayName: finalName,
+    photoURL: user.photoURL || '',
+  })
 }
 
 export function FirebaseAuthProvider({
@@ -73,35 +88,21 @@ export function FirebaseAuthProvider({
     const unsub =
       onAuthStateChanged(
         auth,
-        (
-          currentUser:
-            | User
-            | null
-        ) => {
+        (currentUser) => {
           setUser(currentUser)
 
           if (currentUser) {
-            setStoredAuthUser({
-              email:
-                currentUser.email ||
-                '',
-              displayName:
-                currentUser.displayName ||
-                '',
-              photoURL:
-                currentUser.photoURL ||
-                '',
-            })
-
-            saveUserToLocal(
+            saveNeuralUser(
               currentUser
             )
           } else {
+            localStorage.removeItem(
+              'neural_user'
+            )
+
             setStoredAuthUser(
               null
             )
-
-            clearLocalUser()
           }
 
           setLoading(false)
@@ -121,7 +122,10 @@ export function FirebaseAuthProvider({
 
   const logout =
     async () => {
-      clearLocalUser()
+      localStorage.removeItem(
+        'neural_user'
+      )
+
       await signOut(auth)
     }
 

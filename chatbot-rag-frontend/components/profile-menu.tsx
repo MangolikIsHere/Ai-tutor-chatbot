@@ -23,15 +23,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 import { useFirebaseAuth } from '@/lib/firebase-auth'
+import { useAuthUser } from '@/lib/auth-user'
 
 export function ProfileMenu() {
   const router = useRouter()
-  const { user, logout } = useFirebaseAuth()
-
-  const displayName =
-    user?.displayName ||
-    user?.email ||
-    'Guest'
+  const { logout } = useFirebaseAuth()
+  const { user, displayName } = useAuthUser()
 
   const initials = displayName
     .split(' ')
@@ -46,9 +43,9 @@ export function ProfileMenu() {
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
           <Button
             variant="ghost"
-            className="h-9 rounded-xl px-2.5 gap-2 border"
+            className="h-9 rounded-full px-2.5 gap-2 border bg-background/50 backdrop-blur-md shadow-sm hover:shadow-md hover:bg-accent hover:text-accent-foreground transition-all duration-200"
           >
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg text-[11px] font-semibold bg-primary text-white">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold bg-primary text-white shadow-sm">
               {initials || 'N'}
             </span>
 

@@ -286,33 +286,40 @@ export function ChatSidebar() {
               setProfileOpen(!profileOpen)
             }
             className={cn(
-              'w-full rounded-2xl px-2 py-2 flex items-center gap-3 hover:bg-sidebar-accent transition',
+              'w-full rounded-2xl px-2 py-2 flex items-center gap-3 hover:bg-sidebar-accent transition-all duration-300 hover:shadow-sm',
               isCollapsed && 'justify-center px-0'
             )}
           >
             {/* Avatar */}
-            <div className="w-10 h-10 rounded-2xl overflow-hidden bg-muted shrink-0 ring-1 ring-border">
-              {user?.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={displayName}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="w-full h-full btn-gradient flex items-center justify-center">
-                  <span className="text-white text-sm font-semibold">
-                    {avatarInitial}
-                  </span>
-                </div>
-              )}
+            <div className="relative shrink-0">
+              <div className="w-10 h-10 rounded-2xl overflow-hidden bg-muted ring-1 ring-border shadow-sm transition-transform duration-300 group-hover:scale-[1.02]">
+                {user?.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-full h-full btn-gradient flex items-center justify-center">
+                    <span className="text-white text-sm font-semibold">
+                      {avatarInitial}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {/* Online Indicator */}
+              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-sidebar shadow-sm" />
             </div>
 
             {!isCollapsed && (
               <>
                 <div className="min-w-0 flex-1 text-left">
-                  <div className="text-[14px] font-semibold truncate">
-                    {displayName}
+                  <div className="flex items-center gap-1.5">
+                    <div className="text-[14px] font-semibold truncate">
+                      {displayName}
+                    </div>
+                    <Crown className="w-3.5 h-3.5 text-primary shrink-0" />
                   </div>
 
                   <div className="text-[11px] opacity-50 truncate">
