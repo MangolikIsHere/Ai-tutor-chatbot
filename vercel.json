@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "npm --prefix chatbot-rag-frontend install",
-  "buildCommand": "npm --prefix chatbot-rag-frontend run build",
-  "devCommand": "npm --prefix chatbot-rag-frontend run dev"
+  "installCommand": "if [ -f chatbot-rag-frontend/package.json ]; then npm --prefix chatbot-rag-frontend install; else npm install; fi",
+  "buildCommand": "if [ -f chatbot-rag-frontend/package.json ]; then npm --prefix chatbot-rag-frontend run build; else npm run build; fi",
+  "devCommand": "if [ -f chatbot-rag-frontend/package.json ]; then npm --prefix chatbot-rag-frontend run dev; else npm run dev; fi"
 }
