@@ -15,7 +15,10 @@ import {
   type User,
 } from 'firebase/auth'
 
-import { auth } from './firebase'
+import {
+  getFirebaseAuth,
+  isFirebaseConfigured,
+} from './firebase'
 import { setStoredAuthUser } from './auth-user'
 
 interface AuthContextValue {
@@ -85,6 +88,17 @@ export function FirebaseAuthProvider({
     useState(true)
 
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setLoading(false)
+      return
+    }
+
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      setLoading(false)
+      return
+    }
+
     const unsub =
       onAuthStateChanged(
         auth,
@@ -114,6 +128,13 @@ export function FirebaseAuthProvider({
 
   const login =
     async () => {
+      const auth = getFirebaseAuth()
+      if (!auth) {
+        throw new Error(
+          'Firebase authentication is not configured.'
+        )
+      }
+
       await signInWithPopup(
         auth,
         new GoogleAuthProvider()
@@ -125,6 +146,11 @@ export function FirebaseAuthProvider({
       localStorage.removeItem(
         'neural_user'
       )
+
+      const auth = getFirebaseAuth()
+      if (!auth) {
+        return
+      }
 
       await signOut(auth)
     }

@@ -11,7 +11,64 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const requiredConfigKeys = [
+  'apiKey',
+  'authDomain',
+  'projectId',
+  'appId',
+] as const;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+function hasRequiredFirebaseConfig() {
+  return requiredConfigKeys.every((key) => {
+    const value = firebaseConfig[key];
+    return typeof value === 'string' && value.trim().length > 0;
+  });
+}
+
+let warnedMissingConfig = false;
+
+function warnMissingConfigOnce() {
+  if (warnedMissingConfig || typeof window === 'undefined') {
+    return;
+  }
+
+  warnedMissingConfig = true;
+  console.warn(
+    'Firebase is not configured. Set NEXT_PUBLIC_FIREBASE_* environment variables in Vercel project settings.'
+  );
+}
+
+export const isFirebaseConfigured = hasRequiredFirebaseConfig();
+
+let appInstance: ReturnType<typeof initializeApp> | null = null;
+
+function getFirebaseApp() {
+  if (!isFirebaseConfigured) {
+    warnMissingConfigOnce();
+    return null;
+  }
+
+  if (!appInstance) {
+    appInstance = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  }
+
+  return appInstance;
+}
+
+export function getFirebaseAuth() {
+  const app = getFirebaseApp();
+  if (!app) {
+    return null;
+  }
+
+  return getAuth(app);
+}
+
+export function getFirestoreDb() {
+  const app = getFirebaseApp();
+  if (!app) {
+    return null;
+  }
+
+  return getFirestore(app);
+}

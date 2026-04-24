@@ -10,7 +10,7 @@ import {
   updateProfile,
 } from 'firebase/auth'
 
-import { auth } from '@/lib/firebase'
+import { getFirebaseAuth } from '@/lib/firebase'
 
 export default function AuthPage() {
   const router = useRouter()
@@ -26,6 +26,13 @@ export default function AuthPage() {
     try {
       setLoading(true)
       setError('')
+
+      const auth = getFirebaseAuth()
+      if (!auth) {
+        throw new Error(
+          'Firebase Auth is not configured. Add NEXT_PUBLIC_FIREBASE_* env vars in Vercel.'
+        )
+      }
 
       await signInWithPopup(
         auth,
@@ -44,6 +51,13 @@ export default function AuthPage() {
     try {
       setLoading(true)
       setError('')
+
+      const auth = getFirebaseAuth()
+      if (!auth) {
+        throw new Error(
+          'Firebase Auth is not configured. Add NEXT_PUBLIC_FIREBASE_* env vars in Vercel.'
+        )
+      }
 
       if (mode === 'signup') {
         const result =

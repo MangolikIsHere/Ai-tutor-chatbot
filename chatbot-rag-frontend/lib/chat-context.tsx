@@ -16,7 +16,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore'
 
-import { db } from '@/lib/firebase'
+import { getFirestoreDb } from '@/lib/firebase'
 import { useFirebaseAuth } from '@/lib/firebase-auth'
 
 import {
@@ -113,7 +113,9 @@ export function ChatProvider({
     useState<string | null>(null)
 
   const loadChats = useCallback(async () => {
-    if (!user) {
+    const db = getFirestoreDb()
+
+    if (!user || !db) {
       const local = getAllChats()
 
       if (local.length > 0) {
@@ -183,7 +185,9 @@ export function ChatProvider({
   async function saveChat(
     chat: Chat
   ) {
-    if (!user) {
+    const db = getFirestoreDb()
+
+    if (!user || !db) {
       updateChat(chat.id, chat)
       return
     }
@@ -239,6 +243,13 @@ export function ChatProvider({
       if (!currentChat) return
 
       if (user) {
+        const db = getFirestoreDb()
+        if (!db) {
+          deleteChat(currentChat.id)
+          loadChats()
+          return
+        }
+
         await deleteDoc(
           doc(
             db,
