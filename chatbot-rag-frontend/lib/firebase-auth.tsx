@@ -1,64 +1,152 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from 'react'
 
 import {
   GoogleAuthProvider,
   signInWithPopup,
   signOut,
   onAuthStateChanged,
-  type User
+  type User,
 } from 'firebase/auth'
 
 import { auth } from './firebase'
 import { setStoredAuthUser } from './auth-user'
 
-const AuthContext = createContext<any>(null)
+interface AuthContextValue {
+  user: User | null
+  loading: boolean
+  login: () => Promise<void>
+  logout: () => Promise<void>
+}
 
-export function FirebaseAuthProvider({ children }: any) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
+const AuthContext =
+  createContext<AuthContextValue | null>(
+    null
+  )
+
+function saveUserToLocal(
+  user: User
+) {
+  if (typeof window === 'undefined')
+    return
+
+  localStorage.setItem(
+    'neural_user',
+    JSON.stringify({
+      uid: user.uid,
+      email: user.email || '',
+      displayName:
+        user.displayName || '',
+      photoURL:
+        user.photoURL || '',
+    })
+  )
+}
+
+function clearLocalUser() {
+  if (typeof window === 'undefined')
+    return
+
+  localStorage.removeItem(
+    'neural_user'
+  )
+}
+
+export function FirebaseAuthProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const [user, setUser] =
+    useState<User | null>(null)
+
+  const [loading, setLoading] =
+    useState(true)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u: User | null) => {
-      setUser(u)
+    const unsub =
+      onAuthStateChanged(
+        auth,
+        (
+          currentUser:
+            | User
+            | null
+        ) => {
+          setUser(currentUser)
 
-      if (u) {
-        setStoredAuthUser({
-          email: u.email || '',
-          displayName: u.displayName || '',
-          photoURL: u.photoURL || '',
-        })
-      } else {
-        setStoredAuthUser(null)
-      }
+          if (currentUser) {
+            setStoredAuthUser({
+              email:
+                currentUser.email ||
+                '',
+              displayName:
+                currentUser.displayName ||
+                '',
+              photoURL:
+                currentUser.photoURL ||
+                '',
+            })
 
-      setLoading(false)
-    })
+            saveUserToLocal(
+              currentUser
+            )
+          } else {
+            setStoredAuthUser(
+              null
+            )
+
+            clearLocalUser()
+          }
+
+          setLoading(false)
+        }
+      )
 
     return () => unsub()
   }, [])
 
-  const login = async () => {
-    await signInWithPopup(auth, new GoogleAuthProvider())
-  }
+  const login =
+    async () => {
+      await signInWithPopup(
+        auth,
+        new GoogleAuthProvider()
+      )
+    }
 
-  const logout = async () => {
-    await signOut(auth)
-  }
+  const logout =
+    async () => {
+      clearLocalUser()
+      await signOut(auth)
+    }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
 }
 
-export const useFirebaseAuth = () => {
-  const ctx = useContext(AuthContext)
+export function useFirebaseAuth() {
+  const ctx =
+    useContext(AuthContext)
 
   if (!ctx) {
-    throw new Error('useFirebaseAuth must be used inside FirebaseAuthProvider')
+    throw new Error(
+      'useFirebaseAuth must be used inside FirebaseAuthProvider'
+    )
   }
 
   return ctx
