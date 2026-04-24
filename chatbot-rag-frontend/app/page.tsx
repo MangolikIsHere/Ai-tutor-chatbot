@@ -1,15 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { ChatSidebar } from '@/components/chat-sidebar';
 import { MessageList } from '@/components/message-list';
 import { MessageInput } from '@/components/message-input';
 import { ProfileMenu } from '@/components/profile-menu';
-
-import { ChatProvider } from '@/lib/chat-context';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
@@ -24,7 +22,11 @@ const sidebarVariants = {
     x: 0,
     opacity: 1,
     filter: 'blur(0px)',
-    transition: { duration: 0.42, ease: EASE, delay: 0.08 },
+    transition: {
+      duration: 0.42,
+      ease: EASE,
+      delay: 0.08,
+    },
   },
 };
 
@@ -34,7 +36,11 @@ const mainVariants = {
     opacity: 1,
     y: 0,
     filter: 'blur(0px)',
-    transition: { duration: 0.44, ease: EASE, delay: 0.14 },
+    transition: {
+      duration: 0.44,
+      ease: EASE,
+      delay: 0.14,
+    },
   },
 };
 
@@ -43,7 +49,11 @@ const composerVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: EASE, delay: 0.22 },
+    transition: {
+      duration: 0.4,
+      ease: EASE,
+      delay: 0.22,
+    },
   },
 };
 
@@ -52,7 +62,11 @@ const mobileNavVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.32, ease: EASE, delay: 0.1 },
+    transition: {
+      duration: 0.32,
+      ease: EASE,
+      delay: 0.1,
+    },
   },
 };
 
@@ -84,24 +98,29 @@ function MobileNavbar({
 
         <span
           className="font-semibold"
-          style={{ fontSize: '14px', letterSpacing: '-0.02em' }}
+          style={{
+            fontSize: '14px',
+            letterSpacing: '-0.02em',
+          }}
         >
           NeuralChat
         </span>
       </div>
 
-      <ProfileMenu />
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <ProfileMenu />
+      </div>
     </motion.div>
   );
 }
 
 function ChatInterface() {
-  const router = useRouter();
-
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [appState, setAppState] = useState<'initial' | 'splash' | 'app'>(
-    'initial'
-  );
+
+  const [appState, setAppState] = useState<
+    'initial' | 'splash' | 'app'
+  >('initial');
 
   useEffect(() => {
     setAppState('splash');
@@ -115,6 +134,7 @@ function ChatInterface() {
 
   return (
     <>
+      {/* Splash Screen */}
       <AnimatePresence>
         {appState === 'splash' && (
           <motion.div
@@ -125,13 +145,19 @@ function ChatInterface() {
               opacity: 0,
               scale: 1.05,
               filter: 'blur(10px)',
-              transition: { duration: 0.6, ease: EASE },
+              transition: {
+                duration: 0.6,
+                ease: EASE,
+              },
             }}
           >
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.8, ease: EASE }}
+              transition={{
+                duration: 0.8,
+                ease: EASE,
+              }}
               className="flex flex-col items-center gap-6"
             >
               <div className="relative w-24 h-24 rounded-[32px] btn-gradient flex items-center justify-center shadow-2xl">
@@ -152,10 +178,13 @@ function ChatInterface() {
         )}
       </AnimatePresence>
 
+      {/* App */}
       <motion.div
         className="flex h-[100dvh] overflow-hidden bg-background"
         initial={{ opacity: 0 }}
-        animate={{ opacity: appState === 'app' ? 1 : 0 }}
+        animate={{
+          opacity: appState === 'app' ? 1 : 0,
+        }}
         transition={{ duration: 0.28 }}
       >
         {/* Desktop Sidebar */}
@@ -163,18 +192,27 @@ function ChatInterface() {
           className="hidden md:flex"
           variants={sidebarVariants}
           initial="hidden"
-          animate={appState === 'app' ? 'visible' : 'hidden'}
+          animate={
+            appState === 'app'
+              ? 'visible'
+              : 'hidden'
+          }
         >
           <ChatSidebar />
         </motion.div>
 
         {/* Mobile Sidebar */}
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <Sheet
+          open={mobileOpen}
+          onOpenChange={setMobileOpen}
+        >
           <SheetContent
             side="left"
             className="p-0 w-[260px] border-r border-sidebar-border bg-sidebar"
           >
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetTitle className="sr-only">
+              Navigation
+            </SheetTitle>
 
             <div className="h-full">
               <ChatSidebar />
@@ -182,25 +220,48 @@ function ChatInterface() {
           </SheetContent>
         </Sheet>
 
-        {/* Main */}
+        {/* Main Content */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
-          <MobileNavbar onMenuClick={() => setMobileOpen(true)} />
+          {/* Mobile Header */}
+          <MobileNavbar
+            onMenuClick={() =>
+              setMobileOpen(true)
+            }
+          />
 
-          {/* Desktop Top Bar */}
+          {/* Desktop Header */}
           <motion.div
             className="hidden md:flex items-center justify-end h-12 px-5 shrink-0"
             style={{
-              borderBottom: '1px solid var(--border)',
-              background: 'var(--background)',
+              borderBottom:
+                '1px solid var(--border)',
+              background:
+                'var(--background)',
             }}
-            initial={{ opacity: 0, y: -6 }}
+            initial={{
+              opacity: 0,
+              y: -6,
+            }}
             animate={{
-              opacity: appState === 'app' ? 1 : 0,
-              y: appState === 'app' ? 0 : -6,
+              opacity:
+                appState === 'app'
+                  ? 1
+                  : 0,
+              y:
+                appState === 'app'
+                  ? 0
+                  : -6,
             }}
-            transition={{ duration: 0.24, ease: EASE, delay: 0.1 }}
+            transition={{
+              duration: 0.24,
+              ease: EASE,
+              delay: 0.1,
+            }}
           >
-            <ProfileMenu />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <ProfileMenu />
+            </div>
           </motion.div>
 
           {/* Messages */}
@@ -208,7 +269,11 @@ function ChatInterface() {
             className="flex-1 min-h-0 overflow-hidden"
             variants={mainVariants}
             initial="hidden"
-            animate={appState === 'app' ? 'visible' : 'hidden'}
+            animate={
+              appState === 'app'
+                ? 'visible'
+                : 'hidden'
+            }
           >
             <MessageList />
           </motion.div>
@@ -217,7 +282,11 @@ function ChatInterface() {
           <motion.div
             variants={composerVariants}
             initial="hidden"
-            animate={appState === 'app' ? 'visible' : 'hidden'}
+            animate={
+              appState === 'app'
+                ? 'visible'
+                : 'hidden'
+            }
           >
             <MessageInput />
           </motion.div>
@@ -228,9 +297,5 @@ function ChatInterface() {
 }
 
 export default function Home() {
-  return (
-    <ChatProvider>
-      <ChatInterface />
-    </ChatProvider>
-  );
+  return <ChatInterface />;
 }

@@ -151,7 +151,6 @@ async def chat(request: ChatRequest):
     """
     # ── Resolve session ───────────────────────────────────────────────────
     # Create a new session_id if the client didn't supply one.
-    # This makes memory work even for plain-chat users.
     session_id = request.session_id or str(uuid.uuid4())
 
     # ── Retrieve PDF context (only when session has a retriever) ──────────

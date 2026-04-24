@@ -58,14 +58,14 @@ export function MessageInput() {
         />
 
         {/* ── Utility bar ─────────────────────────────────────── */}
-        <div className="flex items-center justify-end gap-1.5 px-4 sm:px-6 pt-3 pb-1.5">
+        <div className="flex items-center justify-end px-4 sm:px-6 pt-2 pb-1">
           <AnimatePresence>
             {sessionId && (
               <motion.span
-                initial={{ opacity: 0, scale: 0.90 }}
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.90 }}
-                transition={{ duration: 0.20, ease: EASE }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2, ease: EASE }}
                 className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono font-medium"
                 style={{
                   fontSize: '11px',
@@ -80,22 +80,6 @@ export function MessageInput() {
               </motion.span>
             )}
           </AnimatePresence>
-
-          <motion.div whileHover={{ scale: 1.10 }} whileTap={{ scale: 0.88 }}>
-            <Button
-              id="clear-chat-btn"
-              variant="ghost"
-              size="icon"
-              onClick={clearCurrentChat}
-              disabled={isLoading}
-              className="w-7 h-7 rounded-lg transition-colors duration-150"
-              style={{ color: 'var(--muted-foreground)', opacity: 0.55 }}
-              title="Clear conversation"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          </motion.div>
-          <ThemeToggle />
         </div>
 
         {/* ── Error banner ────────────────────────────────────── */}
