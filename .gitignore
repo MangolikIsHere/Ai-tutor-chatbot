@@ -1,5 +1,41 @@
+# Dependencies
 node_modules/
 chatbot-rag-frontend/node_modules/
+chatbot-rag-backend/.venv/
+
+# Build outputs
 .next/
 chatbot-rag-frontend/.next/
+.turbo/
+chatbot-rag-frontend/.turbo/
+.vercel/
+chatbot-rag-frontend/.vercel/
+*.tsbuildinfo
+chatbot-rag-frontend/*.tsbuildinfo
+
+# Environment files
 .env
+.env.*
+chatbot-rag-frontend/.env
+chatbot-rag-frontend/.env.*
+
+# Python caches and bytecode
+__pycache__/
+chatbot-rag-backend/__pycache__/
+*.py[cod]
+chatbot-rag-backend/*.py[cod]
+.pytest_cache/
+chatbot-rag-backend/.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.pid
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -29,8 +29,6 @@ faiss_index/
 # =========================
 # 🛠️ IDE / Editor
 # =========================
-.vscode/
-.idea/
 
 # =========================
 # 🗑️ Temporary files
@@ -38,12 +36,6 @@ faiss_index/
 tempCodeRunnerFile.py
 *.log
 *.tmp
-
-# =========================
-# 💻 OS files
-# =========================
-.DS_Store
-Thumbs.db
 
 # =========================
 # 📦 Optional (large files)
