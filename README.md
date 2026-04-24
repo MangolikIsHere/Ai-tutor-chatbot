@@ -74,7 +74,7 @@ Unlike basic chatbots, NeuralChat is designed like a real SaaS product.
 
 | Main Interface |
 | :---: |
-| ![Dashboard](./assets/screenshots/dashboard.png) |
+| ![Dashboard](./assets/dashboard.png) |
 
 ---
 
@@ -82,7 +82,7 @@ Unlike basic chatbots, NeuralChat is designed like a real SaaS product.
 
 | Chat UI | Smart Prompt Cards |
 | :---: | :---: |
-| ![Chat UI](./assets/screenshots/chat-ui.png) | ![Prompts](./assets/screenshots/home-prompts.png) |
+| ![Chat UI](./assets/chat-ui.png) | ![Prompts](./assets/home-prompts.png) |
 
 ---
 
@@ -90,7 +90,7 @@ Unlike basic chatbots, NeuralChat is designed like a real SaaS product.
 
 | Upload Knowledge Files |
 | :---: |
-| ![Upload](./assets/screenshots/upload-documents.png) |
+| ![Upload](./assets/upload-documents.png) |
 
 ---
 
@@ -98,7 +98,7 @@ Unlike basic chatbots, NeuralChat is designed like a real SaaS product.
 
 | Profile Dashboard | Account Menu |
 | :---: | :---: |
-| ![Profile](./assets/screenshots/profile-dashboard.png) | ![Menu](./assets/screenshots/account-menu.png) |
+| ![Profile](./assets/profile-dashboard.png) | ![Menu](./assets/account-menu.png) |
 
 ---
 
