@@ -21,6 +21,7 @@ import {
   Settings,
   LogOut,
   ChevronUp,
+  Crown,
 } from 'lucide-react';
 
 import { useChatContext } from '@/lib/chat-context';
@@ -37,7 +38,7 @@ const itemVariants = {
     opacity: 1,
     x: 0,
     transition: {
-      duration: 0.2,
+      duration: 0.22,
       delay: i * 0.03,
       ease: EASE,
     },
@@ -90,38 +91,51 @@ export function ChatSidebar() {
     router.push('/');
   }
 
+  function goAccount() {
+    setProfileOpen(false);
+    router.push('/account');
+  }
+
   return (
     <>
       <aside
         className={cn(
-          'relative flex flex-col h-full shrink-0 bg-sidebar border-r border-sidebar-border transition-all duration-300',
-          isCollapsed ? 'w-[60px]' : 'w-[265px]'
+          'relative flex flex-col h-full shrink-0 border-r border-sidebar-border bg-sidebar transition-all duration-300',
+          isCollapsed ? 'w-[64px]' : 'w-[280px]'
         )}
       >
         {/* Header */}
-        <div className="h-16 px-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl btn-gradient flex items-center justify-center shadow-md shrink-0">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-
-          {!isCollapsed && (
-            <div className="min-w-0">
-              <div className="font-semibold text-[15px] leading-none">
-                NeuralChat
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.22em] opacity-45 mt-1">
-                PRO AI
-              </div>
+        <div className="px-4 pt-4 pb-3">
+          <div
+            className={cn(
+              'flex items-center gap-3',
+              isCollapsed && 'justify-center'
+            )}
+          >
+            <div className="w-10 h-10 rounded-2xl btn-gradient flex items-center justify-center shadow-lg shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-          )}
+
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <div className="font-semibold text-[18px] leading-none tracking-tight">
+                  NeuralChat
+                </div>
+
+                <div className="text-[10px] uppercase tracking-[0.25em] opacity-50 mt-1">
+                  PRO AI
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Actions */}
+        {/* Action Buttons */}
         <div className="px-3 pb-3 space-y-2">
           <Button
             onClick={createNewChat}
             className={cn(
-              'btn-gradient text-white rounded-xl h-10',
+              'btn-gradient rounded-xl h-11 text-white shadow-md',
               isCollapsed
                 ? 'w-10 p-0'
                 : 'w-full justify-start gap-2 px-3'
@@ -135,7 +149,7 @@ export function ChatSidebar() {
             variant="ghost"
             onClick={() => setUploadOpen(true)}
             className={cn(
-              'rounded-xl h-10',
+              'rounded-xl h-10 hover:bg-sidebar-accent',
               isCollapsed
                 ? 'w-10 p-0'
                 : 'w-full justify-start gap-2 px-3'
@@ -160,14 +174,14 @@ export function ChatSidebar() {
                   initial="hidden"
                   animate="visible"
                   layout
-                  className="relative group"
+                  className="group relative"
                 >
                   <button
                     onClick={() => switchChat(chat.id)}
                     className={cn(
-                      'w-full h-10 rounded-xl text-sm flex items-center gap-2 px-3 transition',
+                      'w-full h-10 rounded-xl text-sm flex items-center gap-2 px-3 transition-all',
                       active
-                        ? 'bg-sidebar-accent'
+                        ? 'bg-sidebar-accent shadow-sm'
                         : 'hover:bg-sidebar-accent/60',
                       isCollapsed && 'justify-center px-0'
                     )}
@@ -187,7 +201,7 @@ export function ChatSidebar() {
                         e.stopPropagation();
                         deleteCurrentChat();
                       }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-40 hover:opacity-100"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -203,51 +217,61 @@ export function ChatSidebar() {
           ref={panelRef}
           className="border-t border-sidebar-border p-3 relative"
         >
-          {/* Elite Panel */}
+          {/* Premium Profile Popup */}
           <AnimatePresence>
             {!isCollapsed && profileOpen && (
               <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                exit={{ opacity: 0, y: 10, scale: 0.97 }}
                 transition={{ duration: 0.18 }}
-                className="absolute bottom-[74px] left-3 right-3 rounded-2xl border border-sidebar-border bg-background shadow-2xl p-2 z-50"
+                className="absolute bottom-[76px] left-3 right-3 rounded-3xl border border-sidebar-border bg-background/95 backdrop-blur-xl shadow-2xl p-2 z-50"
               >
-                <button
-                  onClick={() => router.push('/account')}
-                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
-                >
-                  <UserCircle2 className="w-4 h-4 shrink-0" />
-                  <span>My Account</span>
-                </button>
+                {/* Plan Badge */}
+                <div className="px-3 py-2 mb-2 rounded-2xl bg-primary/10 border border-primary/20 flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-medium">
+                    Free Plan
+                  </span>
+                </div>
 
-                <button
-                  onClick={() => router.push('/billing')}
-                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
-                >
-                  <CreditCard className="w-4 h-4 shrink-0" />
-                  <span>Subscription</span>
-                </button>
+                {[
+                  {
+                    icon: UserCircle2,
+                    label: 'My Account',
+                  },
+                  {
+                    icon: CreditCard,
+                    label: 'Subscription',
+                  },
+                  {
+                    icon: BarChart3,
+                    label: 'Usage',
+                  },
+                  {
+                    icon: Settings,
+                    label: 'Settings',
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
 
-                <button
-                  onClick={() => router.push('/usage')}
-                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
-                >
-                  <BarChart3 className="w-4 h-4 shrink-0" />
-                  <span>Usage</span>
-                </button>
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={goAccount}
+                      className="w-full h-11 px-3 rounded-2xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
 
-                <button
-                  onClick={() => router.push('/settings')}
-                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
-                >
-                  <Settings className="w-4 h-4 shrink-0" />
-                  <span>Settings</span>
-                </button>
+                <div className="my-2 border-t border-sidebar-border" />
 
                 <button
                   onClick={handleLogout}
-                  className="w-full h-10 px-3 rounded-xl flex items-center gap-3 hover:bg-red-500/10 text-red-400 text-sm transition"
+                  className="w-full h-11 px-3 rounded-2xl flex items-center gap-3 hover:bg-red-500/10 text-red-400 text-sm transition"
                 >
                   <LogOut className="w-4 h-4 shrink-0" />
                   <span>Logout</span>
@@ -256,16 +280,18 @@ export function ChatSidebar() {
             )}
           </AnimatePresence>
 
-          {/* Profile Trigger */}
+          {/* Trigger */}
           <button
-            onClick={() => setProfileOpen(!profileOpen)}
+            onClick={() =>
+              setProfileOpen(!profileOpen)
+            }
             className={cn(
               'w-full rounded-2xl px-2 py-2 flex items-center gap-3 hover:bg-sidebar-accent transition',
               isCollapsed && 'justify-center px-0'
             )}
           >
             {/* Avatar */}
-            <div className="w-10 h-10 rounded-2xl overflow-hidden shrink-0 bg-muted">
+            <div className="w-10 h-10 rounded-2xl overflow-hidden bg-muted shrink-0 ring-1 ring-border">
               {user?.photoURL ? (
                 <img
                   src={user.photoURL}
@@ -275,7 +301,7 @@ export function ChatSidebar() {
                 />
               ) : (
                 <div className="w-full h-full btn-gradient flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">
+                  <span className="text-white text-sm font-semibold">
                     {avatarInitial}
                   </span>
                 </div>
@@ -309,8 +335,10 @@ export function ChatSidebar() {
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="w-8 h-8 rounded-lg"
+              onClick={() =>
+                setIsCollapsed(!isCollapsed)
+              }
+              className="w-8 h-8 rounded-xl hover:bg-sidebar-accent"
             >
               {isCollapsed ? (
                 <PanelLeft className="w-4 h-4" />
