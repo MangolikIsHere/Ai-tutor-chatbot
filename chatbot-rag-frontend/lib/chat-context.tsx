@@ -48,12 +48,22 @@ export interface Chat {
   sessionId?: string | null
 }
 
+interface ReplyTarget {
+  id: string
+  content: string
+}
+
 interface ChatContextValue {
   chats: Chat[]
   currentChat: Chat | null
   sessionId: string | null
   isLoading: boolean
   error: string | null
+
+  replyTarget: ReplyTarget | null
+  setReplyTarget: (
+    target: ReplyTarget | null
+  ) => void
 
   createNewChat: () => void
   switchChat: (id: string) => void
@@ -114,6 +124,14 @@ export function ChatProvider({
   const [error, setError] =
     useState<string | null>(null)
 
+  const [replyTarget, setReplyTarget] =
+    useState<ReplyTarget | null>(null)
+
+  const clearError =
+    useCallback(() => {
+      setError(null)
+    }, [])
+
   const loadChats = useCallback(async () => {
     const db = getFirestoreDb()
 
@@ -156,29 +174,6 @@ export function ChatProvider({
     if (loaded.length > 0) {
       setChats(loaded)
       setCurrentChat(loaded[0])
-    } else {
-      const chat: Chat = {
-        id: crypto.randomUUID(),
-        title: 'New Chat',
-        messages: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        sessionId: null,
-      }
-
-      await setDoc(
-        doc(
-          db,
-          'users',
-          user.uid,
-          'chats',
-          chat.id
-        ),
-        chat
-      )
-
-      setChats([chat])
-      setCurrentChat(chat)
     }
   }, [user])
 
@@ -227,6 +222,7 @@ export function ChatProvider({
       ])
 
       setCurrentChat(chat)
+      setReplyTarget(null)
       setError(null)
     }, [user])
 
@@ -239,6 +235,7 @@ export function ChatProvider({
           ) || null
 
         setCurrentChat(found)
+        setReplyTarget(null)
         setError(null)
       },
       [chats]
@@ -252,62 +249,39 @@ export function ChatProvider({
         const db =
           getFirestoreDb()
 
-        if (!db) {
-          deleteChat(
-            currentChat.id
+        if (db) {
+          await deleteDoc(
+            doc(
+              db,
+              'users',
+              user.uid,
+              'chats',
+              currentChat.id
+            )
           )
-          loadChats()
-          return
         }
-
-        await deleteDoc(
-          doc(
-            db,
-            'users',
-            user.uid,
-            'chats',
-            currentChat.id
-          )
-        )
       } else {
-        deleteChat(
-          currentChat.id
-        )
+        deleteChat(currentChat.id)
       }
 
-      await loadChats()
-      setError(null)
-    }, [
-      currentChat,
-      user,
-      loadChats,
-    ])
+      loadChats()
+    }, [currentChat, user])
 
   const clearCurrentChat =
     useCallback(async () => {
       if (!currentChat) return
 
-      const cleared: Chat = {
+      const cleared = {
         ...currentChat,
         title: 'New Chat',
         messages: [],
         sessionId: null,
-        updatedAt: Date.now(),
       }
 
       await saveChat(cleared)
       await loadChats()
-      setError(null)
-    }, [
-      currentChat,
-      loadChats,
-      user,
-    ])
-
-  const clearError =
-    useCallback(() => {
-      setError(null)
-    }, [])
+      setReplyTarget(null)
+    }, [currentChat])
 
   const sendChatMessage =
     useCallback(
@@ -327,24 +301,22 @@ export function ChatProvider({
             text
           )
 
-        const optimistic: Chat =
-          {
-            ...currentChat,
-            title:
-              currentChat
-                .messages
-                .length === 0
-                ? generateChatTitle(
-                    text
-                  )
-                : currentChat.title,
-            messages: [
-              ...currentChat.messages,
-              userMsg,
-            ],
-            updatedAt:
-              Date.now(),
-          }
+        const optimistic = {
+          ...currentChat,
+          title:
+            currentChat.messages
+              .length === 0
+              ? generateChatTitle(
+                  text
+                )
+              : currentChat.title,
+          messages: [
+            ...currentChat.messages,
+            userMsg,
+          ],
+          updatedAt:
+            Date.now(),
+        }
 
         setCurrentChat(
           optimistic
@@ -364,22 +336,22 @@ export function ChatProvider({
               res.response
             )
 
-          const finalChat: Chat =
-            {
-              ...optimistic,
-              messages: [
-                ...optimistic.messages,
-                botMsg,
-              ],
-              updatedAt:
-                Date.now(),
-            }
+          const finalChat = {
+            ...optimistic,
+            messages: [
+              ...optimistic.messages,
+              botMsg,
+            ],
+            updatedAt:
+              Date.now(),
+          }
 
           await saveChat(
             finalChat
           )
 
           await loadChats()
+          setReplyTarget(null)
         } catch {
           setError(
             'Message failed.'
@@ -388,11 +360,7 @@ export function ChatProvider({
           setIsLoading(false)
         }
       },
-      [
-        currentChat,
-        user,
-        loadChats,
-      ]
+      [currentChat, user]
     )
 
   return (
@@ -405,6 +373,8 @@ export function ChatProvider({
           null,
         isLoading,
         error,
+        replyTarget,
+        setReplyTarget,
         createNewChat,
         switchChat,
         deleteCurrentChat,

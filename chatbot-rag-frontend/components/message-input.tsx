@@ -1,21 +1,62 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+} from 'react';
+
+import {
+  motion,
+  AnimatePresence,
+} from 'framer-motion';
+
+import {
+  ArrowUp,
+  AlertCircle,
+  X,
+  Paperclip,
+  CornerUpLeft,
+} from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { ArrowUp, AlertCircle, X, Paperclip } from 'lucide-react';
 import { useChatContext } from '@/lib/chat-context';
 import { DocumentUploadDialog } from '@/components/document-upload-dialog';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-export function MessageInput() {
-  const [input, setInput] = useState('');
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+function preview(
+  text: string,
+  max = 120
+) {
+  const clean = text
+    .replace(/\n/g, ' ')
+    .trim();
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  if (clean.length <= max)
+    return clean;
+
+  return (
+    clean.slice(0, max) +
+    '...'
+  );
+}
+
+export function MessageInput() {
+  const [input, setInput] =
+    useState('');
+
+  const [uploadOpen, setUploadOpen] =
+    useState(false);
+
+  const [isFocused, setIsFocused] =
+    useState(false);
+
+  const textareaRef =
+    useRef<HTMLTextAreaElement>(
+      null
+    );
 
   const {
     isLoading,
@@ -23,65 +64,99 @@ export function MessageInput() {
     error,
     clearError,
     sessionId,
+    replyTarget,
+    setReplyTarget,
   } = useChatContext();
 
-  /* Auto resize */
+  /* auto resize */
   useEffect(() => {
-    const el = textareaRef.current;
+    const el =
+      textareaRef.current;
+
     if (!el) return;
 
-    el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
+    el.style.height =
+      'auto';
+
+    el.style.height = `${Math.min(
+      el.scrollHeight,
+      168
+    )}px`;
   }, [input]);
 
-  /* Keep focus on first render */
+  /* keep focus */
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
 
-  /* Submit */
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleSubmit =
+    async (
+      e?: React.FormEvent
+    ) => {
+      e?.preventDefault();
 
-    const text = input.trim();
+      const text =
+        input.trim();
 
-    if (!text || isLoading) return;
+      if (
+        !text ||
+        isLoading
+      )
+        return;
 
-    setInput('');
+      let finalPrompt =
+        text;
 
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.focus();
-    }
+      if (replyTarget) {
+        finalPrompt = `Regarding this previous message:
 
-    await sendChatMessage(text);
+"${replyTarget.content}"
 
-    requestAnimationFrame(() => {
+${text}`;
+      }
+
+      setInput('');
+
       textareaRef.current?.focus();
-      textareaRef.current?.setSelectionRange(0, 0);
-    });
-  };
 
-  /* Enter to send */
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>
-  ) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
+      await sendChatMessage(
+        finalPrompt
+      );
+
+      setReplyTarget(null);
+
+      requestAnimationFrame(
+        () => {
+          textareaRef.current?.focus();
+        }
+      );
+    };
+
+  const handleKeyDown =
+    (
+      e: React.KeyboardEvent<HTMLTextAreaElement>
+    ) => {
+      if (
+        e.key ===
+          'Enter' &&
+        !e.shiftKey
+      ) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
 
   const canSend =
-    input.trim().length > 0 && !isLoading;
+    input.trim().length >
+      0 &&
+    !isLoading;
 
-  const charCount = input.length;
   const LIMIT = 2000;
 
   return (
     <>
       <div className="relative w-full shrink-0">
-        {/* Top fade */}
+        {/* top fade */}
         <div
           className="absolute inset-x-0 -top-10 h-10 pointer-events-none"
           style={{
@@ -90,141 +165,163 @@ export function MessageInput() {
           }}
         />
 
-        {/* Session bar */}
+        {/* session */}
         <div className="flex items-center justify-end px-4 sm:px-6 pt-2 pb-1">
           <AnimatePresence>
             {sessionId && (
               <motion.span
                 initial={{
                   opacity: 0,
-                  scale: 0.9,
                 }}
                 animate={{
                   opacity: 1,
-                  scale: 1,
                 }}
                 exit={{
                   opacity: 0,
-                  scale: 0.9,
                 }}
-                transition={{
-                  duration: 0.2,
-                  ease: EASE,
-                }}
-                className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono font-medium"
+                className="hidden sm:inline-flex rounded-full px-2.5 py-1 text-[11px] font-mono"
                 style={{
-                  fontSize: '11px',
-                  background: 'var(--muted)',
-                  border:
-                    '1px solid var(--border)',
+                  background:
+                    'var(--muted)',
                   color:
                     'var(--muted-foreground)',
                 }}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                {sessionId.slice(0, 8)}
+                {sessionId.slice(
+                  0,
+                  8
+                )}
               </motion.span>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Error */}
+        {/* error */}
         <AnimatePresence>
           {error && (
             <motion.div
               initial={{
                 opacity: 0,
                 y: -6,
-                height: 0,
               }}
               animate={{
                 opacity: 1,
                 y: 0,
-                height: 'auto',
               }}
               exit={{
                 opacity: 0,
-                y: -4,
-                height: 0,
               }}
-              transition={{
-                duration: 0.22,
-                ease: EASE,
-              }}
-              className="mx-4 sm:mx-6 mb-2.5 overflow-hidden"
+              className="mx-4 sm:mx-6 mb-2"
             >
-              <div
-                className="flex items-start gap-2.5 rounded-xl px-3.5 py-2.5"
-                style={{
-                  background:
-                    'oklch(from var(--destructive) l c h / 0.07)',
-                  border:
-                    '1px solid oklch(from var(--destructive) l c h / 0.22)',
-                }}
-              >
-                <AlertCircle className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 rounded-xl px-3 py-2 border border-red-300/30 bg-red-500/5">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
 
-                <p className="flex-1 text-[13px] text-destructive leading-snug font-medium">
+                <p className="flex-1 text-sm text-red-500">
                   {error}
                 </p>
 
-                <motion.button
+                <button
                   type="button"
-                  onClick={clearError}
-                  whileTap={{
-                    scale: 0.85,
-                  }}
-                  aria-label="Dismiss error"
-                  className="text-destructive/50 hover:text-destructive transition-colors mt-0.5 shrink-0"
+                  onClick={
+                    clearError
+                  }
                 >
-                  <X className="w-3.5 h-3.5" />
-                </motion.button>
+                  <X className="w-4 h-4 text-red-500" />
+                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Composer */}
-        <div className="px-3 sm:px-5 pb-4">
-          <form onSubmit={handleSubmit}>
+        {/* reply preview */}
+        <AnimatePresence>
+          {replyTarget && (
             <motion.div
-              className="relative flex items-end gap-2 rounded-[24px] px-3.5 py-3 transition-all duration-300"
-              animate={{
-                borderColor: isFocused
-                  ? 'color-mix(in oklch, var(--primary) 55%, var(--border-strong) 45%)'
-                  : 'var(--border-strong)',
-                boxShadow: isFocused
-                  ? 'var(--shadow-lg), 0 0 0 2px var(--primary-glow)'
-                  : 'var(--shadow-md)',
+              initial={{
+                opacity: 0,
+                y: 8,
               }}
-              transition={{
-                duration: 0.3,
-                ease: EASE,
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              exit={{
+                opacity: 0,
+              }}
+              className="mx-3 sm:mx-5 mb-2"
+            >
+              <div className="rounded-2xl border border-border bg-card px-3 py-2 flex items-start gap-2">
+                <CornerUpLeft className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium opacity-70 mb-0.5">
+                    Replying to message
+                  </p>
+
+                  <p className="text-[12px] opacity-75 truncate">
+                    {preview(
+                      replyTarget.content
+                    )}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReplyTarget(
+                      null
+                    )
+                  }
+                >
+                  <X className="w-4 h-4 opacity-60" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* composer */}
+        <div className="px-3 sm:px-5 pb-4">
+          <form
+            onSubmit={
+              handleSubmit
+            }
+          >
+            <motion.div
+              className="relative flex items-end gap-2 rounded-[24px] px-3.5 py-3 border"
+              animate={{
+                boxShadow:
+                  isFocused
+                    ? 'var(--shadow-lg)'
+                    : 'var(--shadow-md)',
               }}
               style={{
                 background:
                   'var(--card)',
-                border:
-                  '1px solid var(--border-strong)',
+                borderColor:
+                  'var(--border)',
               }}
             >
-              {/* Upload */}
+              {/* upload */}
               <Button
                 type="button"
                 size="icon"
                 variant="ghost"
                 onClick={() =>
-                  setUploadOpen(true)
+                  setUploadOpen(
+                    true
+                  )
                 }
-                className="w-9 h-9 shrink-0 mb-0.5 rounded-xl"
+                className="w-9 h-9 rounded-xl shrink-0"
               >
-                <Paperclip className="w-4.5 h-4.5" />
+                <Paperclip className="w-4 h-4" />
               </Button>
 
-              {/* Input */}
+              {/* textarea */}
               <textarea
-                ref={textareaRef}
-                id="message-input"
+                ref={
+                  textareaRef
+                }
                 value={input}
                 onChange={(e) =>
                   setInput(
@@ -235,117 +332,58 @@ export function MessageInput() {
                   handleKeyDown
                 }
                 onFocus={() =>
-                  setIsFocused(true)
+                  setIsFocused(
+                    true
+                  )
                 }
                 onBlur={() =>
-                  setIsFocused(false)
+                  setIsFocused(
+                    false
+                  )
                 }
-                placeholder="Message NeuralChat…"
-                readOnly={isLoading}
                 rows={1}
                 maxLength={LIMIT}
-                aria-label="Message input"
+                readOnly={
+                  isLoading
+                }
+                placeholder="Message NeuralChat…"
                 className="flex-1 resize-none bg-transparent outline-none py-1"
-                style={{
-                  fontSize: '15px',
-                  lineHeight: '1.6',
-                  minHeight: '28px',
-                  color:
-                    'var(--foreground)',
-                  caretColor:
-                    'var(--primary)',
-                }}
               />
 
-              {/* Send */}
+              {/* send */}
               <Button
                 type="submit"
                 size="icon"
-                disabled={!canSend}
-                className="w-9 h-9 shrink-0 mb-0.5 rounded-xl"
+                disabled={
+                  !canSend
+                }
+                className="w-9 h-9 rounded-xl shrink-0"
               >
                 <AnimatePresence
                   mode="wait"
-                  initial={false}
+                  initial={
+                    false
+                  }
                 >
                   {isLoading ? (
-                    <motion.span
-                      key="loading"
-                      initial={{
-                        opacity: 0,
-                      }}
-                      animate={{
-                        opacity: 1,
-                      }}
-                      exit={{
-                        opacity: 0,
-                      }}
-                    >
-                      <Spinner className="w-4 h-4" />
-                    </motion.span>
+                    <Spinner className="w-4 h-4" />
                   ) : (
-                    <motion.span
-                      key="arrow"
-                      initial={{
-                        opacity: 0,
-                        y: 5,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      exit={{
-                        opacity: 0,
-                        y: -5,
-                      }}
-                    >
-                      <ArrowUp className="w-4.5 h-4.5" />
-                    </motion.span>
+                    <ArrowUp className="w-4 h-4" />
                   )}
                 </AnimatePresence>
               </Button>
             </motion.div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-between mt-2 px-1">
-              <p
-                className="text-[11.5px]"
-                style={{
-                  color:
-                    'var(--muted-foreground)',
-                  opacity: 0.52,
-                }}
-              >
-                ↵ send · ⇧↵ new line
-              </p>
-
-              <AnimatePresence>
-                {charCount >
-                  LIMIT * 0.8 && (
-                  <motion.span
-                    initial={{
-                      opacity: 0,
-                    }}
-                    animate={{
-                      opacity: 1,
-                    }}
-                    exit={{
-                      opacity: 0,
-                    }}
-                    className="text-[11px] tabular-nums font-medium"
-                  >
-                    {charCount}/{LIMIT}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
           </form>
         </div>
       </div>
 
       <DocumentUploadDialog
-        open={uploadOpen}
-        onOpenChange={setUploadOpen}
+        open={
+          uploadOpen
+        }
+        onOpenChange={
+          setUploadOpen
+        }
       />
     </>
   );
