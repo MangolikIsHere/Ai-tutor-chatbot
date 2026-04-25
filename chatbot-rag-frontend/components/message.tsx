@@ -2,13 +2,9 @@
 
 import React, {
   useState,
-  useCallback,
+  useRef,
+  useEffect,
 } from 'react';
-
-import {
-  motion,
-  AnimatePresence,
-} from 'framer-motion';
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -18,179 +14,261 @@ import {
   Check,
   User,
   Sparkles,
-  CornerUpLeft,
+  MessageSquareText,
 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useChatContext } from '@/lib/chat-context';
 
-interface MessageProps {
+interface Props {
   id: string;
   content: string;
   role: 'user' | 'assistant';
   timestamp: number;
 }
 
-const EASE = [0.22, 1, 0.36, 1] as const;
-
-/* ───────────────────────────── */
-
-function AIAvatar() {
-  return (
-    <div
-      className="flex-shrink-0 w-8 h-8 rounded-xl btn-gradient flex items-center justify-center mt-1"
-      style={{
-        boxShadow:
-          '0 2px 6px var(--primary-glow)',
-      }}
-    >
-      <Sparkles className="w-4 h-4 text-white" />
-    </div>
-  );
-}
-
-function UserAvatar() {
-  return (
-    <div
-      className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center mt-1"
-      style={{
-        background:
-          'var(--surface-02)',
-        border:
-          '1px solid var(--border)',
-      }}
-    >
-      <User className="w-4 h-4 opacity-60" />
-    </div>
-  );
-}
-
-function trimPreview(
-  text: string,
-  max = 90
-) {
-  const clean = text
-    .replace(/\n/g, ' ')
-    .trim();
-
-  if (clean.length <= max)
-    return clean;
-
-  return clean.slice(0, max) + '...';
-}
-
-/* ───────────────────────────── */
-
 export function Message({
   id,
   content,
   role,
   timestamp,
-}: MessageProps) {
+}: Props) {
   const isUser =
     role === 'user';
 
+  const wrapperRef =
+    useRef<HTMLDivElement>(null);
+
   const [copied, setCopied] =
     useState(false);
+
+  const [popup, setPopup] =
+    useState({
+      visible: false,
+      text: '',
+      x: 0,
+      y: 0,
+    });
 
   const {
     setReplyTarget,
   } = useChatContext();
 
-  const timeStr =
+  const time =
     new Date(
       timestamp
     ).toLocaleTimeString(
-      'en-US',
+      [],
       {
         hour: '2-digit',
         minute: '2-digit',
       }
     );
 
+  const closePopup =
+    () =>
+      setPopup({
+        visible: false,
+        text: '',
+        x: 0,
+        y: 0,
+      });
+
+  /* copy */
+
   const handleCopy =
-    useCallback(() => {
-      navigator.clipboard.writeText(
+    async () => {
+      await navigator.clipboard.writeText(
         content
       );
 
       setCopied(true);
 
-      setTimeout(() => {
-        setCopied(false);
-      }, 1800);
-    }, [content]);
+      setTimeout(
+        () =>
+          setCopied(false),
+        1500
+      );
+    };
 
-  const handleReply =
-    useCallback(() => {
+  /* ask full */
+
+  const askFull =
+    () => {
       setReplyTarget({
         id,
         content,
       });
-    }, [id, content]);
+    };
+
+  /* ask selected */
+
+  const askSelected =
+    () => {
+      setReplyTarget({
+        id,
+        content:
+          popup.text,
+      });
+
+      closePopup();
+    };
+
+  /* text selection */
+
+  useEffect(() => {
+    if (isUser) return;
+
+    const handleSelection =
+      () => {
+        const sel =
+          window.getSelection();
+
+        const text =
+          sel
+            ?.toString()
+            .trim() || '';
+
+        if (!text) {
+          closePopup();
+          return;
+        }
+
+        try {
+          const range =
+            sel!.getRangeAt(0);
+
+          const rect =
+            range.getBoundingClientRect();
+
+          const parent =
+            wrapperRef.current?.getBoundingClientRect();
+
+          if (!parent) return;
+
+          setPopup({
+            visible: true,
+            text,
+            x:
+              rect.left -
+              parent.left +
+              rect.width / 2,
+            y:
+              rect.top -
+              parent.top -
+              14,
+          });
+        } catch {
+          closePopup();
+        }
+      };
+
+    const hide =
+      (
+        e: MouseEvent
+      ) => {
+        const target =
+          e.target as HTMLElement;
+
+        if (
+          !target.closest(
+            '.selection-popup'
+          )
+        ) {
+          closePopup();
+        }
+      };
+
+    document.addEventListener(
+      'mouseup',
+      handleSelection
+    );
+
+    document.addEventListener(
+      'mousedown',
+      hide
+    );
+
+    return () => {
+      document.removeEventListener(
+        'mouseup',
+        handleSelection
+      );
+
+      document.removeEventListener(
+        'mousedown',
+        hide
+      );
+    };
+  }, [isUser]);
 
   return (
-    <motion.div
+    <div
       className={cn(
-        'group/msg flex gap-3 px-4 sm:px-6 py-2 max-w-[780px] mx-auto',
+        'group flex gap-3 px-4 sm:px-6 py-2 max-w-[780px] mx-auto',
         isUser
           ? 'justify-end'
           : 'justify-start'
       )}
-      initial={{
-        opacity: 0,
-        y: 8,
-      }}
-      animate={{
-        opacity: 1,
-        y: 0,
-      }}
-      transition={{
-        duration: 0.22,
-        ease: EASE,
-      }}
     >
-      {!isUser && <AIAvatar />}
+      {!isUser && (
+        <div className="w-8 h-8 rounded-xl btn-gradient flex items-center justify-center mt-1 shrink-0">
+          <Sparkles className="w-4 h-4 text-white" />
+        </div>
+      )}
 
       <div
+        ref={wrapperRef}
         className={cn(
-          'flex flex-col gap-1.5 min-w-0',
+          'relative flex flex-col gap-2',
           isUser
-            ? 'items-end max-w-[72%] sm:max-w-[60%]'
-            : 'items-start max-w-[90%] sm:max-w-[82%]'
+            ? 'items-end max-w-[70%]'
+            : 'items-start max-w-[85%]'
         )}
       >
-        {/* Bubble */}
-        <motion.div
+        {/* popup */}
+        {popup.visible &&
+          !isUser && (
+            <div
+              className="selection-popup"
+              style={{
+                left:
+                  popup.x,
+                top:
+                  popup.y,
+              }}
+            >
+              <button
+                onClick={
+                  askSelected
+                }
+                className="selection-action"
+              >
+                <MessageSquareText className="w-4 h-4" />
+                Ask NeuralAi
+              </button>
+            </div>
+          )}
+
+        {/* bubble */}
+        <div
           className={cn(
-            'relative px-5 py-4 break-words rounded-2xl transition-all duration-200',
+            'px-5 py-4 rounded-2xl border text-[15px] leading-7 select-text',
             isUser
-              ? 'rounded-tr-md text-white'
-              : 'rounded-tl-md border border-border'
+              ? 'text-white rounded-tr-md'
+              : 'bg-card border-border rounded-tl-md'
           )}
           style={{
-            fontSize: '14.5px',
-            lineHeight: '1.82',
-            letterSpacing:
-              '-0.01em',
             ...(isUser
               ? {
                   background:
-                    'linear-gradient(140deg, color-mix(in oklch, var(--primary) 85%, white 15%) 0%, color-mix(in oklch, var(--primary) 72%, black 28%) 100%)',
+                    'linear-gradient(135deg,#667eea,#764ba2)',
                 }
-              : {
-                  background:
-                    'var(--surface-01)',
-                  color:
-                    'var(--foreground)',
-                }),
+              : {}),
           }}
         >
           {isUser ? (
-            <p className="whitespace-pre-wrap">
-              {content}
-            </p>
+            <p>{content}</p>
           ) : (
             <ReactMarkdown
               remarkPlugins={[
@@ -200,123 +278,54 @@ export function Message({
               {content}
             </ReactMarkdown>
           )}
-        </motion.div>
-
-        {/* Meta row */}
-        <div
-          className={cn(
-            'flex items-center gap-1.5 px-0.5',
-            isUser
-              ? 'flex-row-reverse'
-              : 'flex-row'
-          )}
-        >
-          <time
-            className="text-[11px] opacity-65"
-            style={{
-              color:
-                'var(--muted-foreground)',
-            }}
-          >
-            {timeStr}
-          </time>
-
-          {/* Copy */}
-          {!isUser && (
-            <motion.button
-              type="button"
-              onClick={
-                handleCopy
-              }
-              whileTap={{
-                scale: 0.9,
-              }}
-              className="opacity-0 group-hover/msg:opacity-100 transition-opacity text-[11px] px-1.5 py-0.5 rounded-md"
-              style={{
-                color:
-                  copied
-                    ? 'rgb(52,211,153)'
-                    : 'var(--muted-foreground)',
-              }}
-            >
-              <AnimatePresence
-                mode="wait"
-                initial={
-                  false
-                }
-              >
-                {copied ? (
-                  <motion.span
-                    key="done"
-                    initial={{
-                      opacity: 0,
-                    }}
-                    animate={{
-                      opacity: 1,
-                    }}
-                    exit={{
-                      opacity: 0,
-                    }}
-                    className="flex items-center gap-1"
-                  >
-                    <Check className="w-3 h-3" />
-                    Copied
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="copy"
-                    initial={{
-                      opacity: 0,
-                    }}
-                    animate={{
-                      opacity: 1,
-                    }}
-                    exit={{
-                      opacity: 0,
-                    }}
-                    className="flex items-center gap-1"
-                  >
-                    <Copy className="w-3 h-3" />
-                    Copy
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
-          )}
-
-          {/* Reply */}
-          {!isUser && (
-            <motion.button
-              type="button"
-              onClick={
-                handleReply
-              }
-              whileTap={{
-                scale: 0.9,
-              }}
-              className="opacity-0 group-hover/msg:opacity-100 transition-opacity text-[11px] px-1.5 py-0.5 rounded-md flex items-center gap-1"
-              style={{
-                color:
-                  'var(--muted-foreground)',
-              }}
-            >
-              <CornerUpLeft className="w-3 h-3" />
-              Ask about this
-            </motion.button>
-          )}
         </div>
 
-        {/* Hidden preview support */}
-        {!isUser && (
-          <div className="hidden">
-            {trimPreview(
-              content
-            )}
-          </div>
-        )}
+        {/* actions */}
+        <div className="flex items-center gap-3 px-1 text-xs opacity-0 group-hover:opacity-100 transition">
+          <span className="opacity-50">
+            {time}
+          </span>
+
+          {!isUser && (
+            <>
+              <button
+                onClick={
+                  handleCopy
+                }
+                className="hover:opacity-100 opacity-70 flex items-center gap-1"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3 h-3" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={
+                  askFull
+                }
+                className="hover:opacity-100 opacity-70 flex items-center gap-1"
+              >
+                <MessageSquareText className="w-3 h-3" />
+                Ask NeuralAi
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {isUser && <UserAvatar />}
-    </motion.div>
+      {isUser && (
+        <div className="w-8 h-8 rounded-xl border border-border flex items-center justify-center mt-1 shrink-0">
+          <User className="w-4 h-4 opacity-60" />
+        </div>
+      )}
+    </div>
   );
 }
