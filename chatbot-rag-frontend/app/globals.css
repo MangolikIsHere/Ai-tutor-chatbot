@@ -376,3 +376,298 @@
     50%       { box-shadow: 0 0 0 6px transparent; }
   }
 }
+/* ==========================================
+   PREMIUM GLOBAL ADDITIONS FOR NEURALCHAT
+   Add this at the BOTTOM of globals.css
+========================================== */
+
+/* Full height */
+html,
+body {
+  height: 100%;
+}
+
+/* Better rendering */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+/* Smooth transitions */
+body,
+button,
+input,
+textarea,
+a,
+div {
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+/* Better selection */
+::selection {
+  background: color-mix(
+    in oklch,
+    var(--primary) 24%,
+    transparent
+  );
+  color: var(--foreground);
+}
+
+/* Focus polish */
+*:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px
+      color-mix(
+        in oklch,
+        var(--primary) 34%,
+        transparent
+      );
+}
+
+/* ==========================
+   Utility surfaces
+========================== */
+
+.surface-premium {
+  background: color-mix(
+    in oklch,
+    var(--card) 90%,
+    transparent
+  );
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.glass {
+  background: color-mix(
+    in oklch,
+    var(--card) 82%,
+    transparent
+  );
+  backdrop-filter: blur(18px);
+}
+
+.surface-raised {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.05),
+    0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+/* ==========================
+   Brand gradient
+========================== */
+
+.btn-gradient {
+  background: linear-gradient(
+    135deg,
+    color-mix(
+      in oklch,
+      var(--primary) 88%,
+      white 12%
+    )
+      0%,
+    color-mix(
+      in oklch,
+      var(--primary) 72%,
+      black 28%
+    )
+      100%
+  );
+}
+
+/* ==========================
+   Floating glow backgrounds
+========================== */
+
+.bg-glow {
+  position: relative;
+}
+
+.bg-glow::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle,
+    color-mix(
+        in oklch,
+        var(--primary) 16%,
+        transparent
+      )
+      0%,
+    transparent 70%
+  );
+  filter: blur(60px);
+}
+
+/* ==========================
+   Typing animation
+========================== */
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  animation: bounceDot 1.2s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bounceDot {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* ==========================
+   Inputs
+========================== */
+
+textarea,
+input {
+  caret-color: var(--primary);
+}
+
+textarea::placeholder,
+input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.62;
+}
+
+/* ==========================
+   Markdown / Code blocks
+========================== */
+
+pre {
+  overflow-x: auto;
+  padding: 16px;
+  border-radius: 18px;
+  line-height: 1.55;
+  background: color-mix(
+    in oklch,
+    var(--muted) 72%,
+    black 28%
+  );
+  border: 1px solid var(--border);
+}
+
+code {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.92em;
+}
+
+:not(pre) > code {
+  padding: 0.15rem 0.35rem;
+  border-radius: 8px;
+  background: var(--muted);
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+th,
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+th {
+  background: var(--muted);
+  font-weight: 600;
+}
+
+/* ==========================
+   Scrollbars
+========================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(
+    in oklch,
+    var(--muted-foreground) 28%,
+    transparent
+  );
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(
+    in oklch,
+    var(--muted-foreground) 42%,
+    transparent
+  );
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color:
+    color-mix(
+      in oklch,
+      var(--muted-foreground) 30%,
+      transparent
+    )
+    transparent;
+}
+
+/* ==========================
+   Motion safety
+========================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

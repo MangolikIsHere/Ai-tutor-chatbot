@@ -1,11 +1,18 @@
 'use client';
 
-import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, {
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+} from 'react';
 
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useRouter } from 'next/navigation';
+
+import {
+  motion,
+  AnimatePresence,
+} from 'framer-motion';
 
 import {
   Plus,
@@ -22,40 +29,41 @@ import {
   LogOut,
   ChevronUp,
   Crown,
+  Search,
 } from 'lucide-react';
 
-import { useChatContext } from '@/lib/chat-context';
-import { useAuthUser } from '@/lib/auth-user';
-import { useFirebaseAuth } from '@/lib/firebase-auth';
-import { DocumentUploadDialog } from '@/components/document-upload-dialog';
+import {
+  Button,
+} from '@/components/ui/button';
+
+import {
+  ScrollArea,
+} from '@/components/ui/scroll-area';
+
+import {
+  useChatContext,
+} from '@/lib/chat-context';
+
+import {
+  useAuthUser,
+} from '@/lib/auth-user';
+
+import {
+  useFirebaseAuth,
+} from '@/lib/firebase-auth';
+
+import {
+  DocumentUploadDialog,
+} from '@/components/document-upload-dialog';
+
 import { cn } from '@/lib/utils';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-const itemVariants = {
-  hidden: { opacity: 0, x: -8 },
-  visible: (i: number) => ({
-    opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.22,
-      delay: i * 0.03,
-      ease: EASE,
-    },
-  }),
-};
+/* ───────────────────────────── */
 
 export function ChatSidebar() {
   const router = useRouter();
-
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  const { user, displayName } = useAuthUser();
-  const { logout } = useFirebaseAuth();
 
   const {
     chats,
@@ -65,25 +73,69 @@ export function ChatSidebar() {
     deleteCurrentChat,
   } = useChatContext();
 
-  const avatarInitial = useMemo(() => {
-    const first = displayName?.trim()?.charAt(0);
-    return first ? first.toUpperCase() : 'N';
-  }, [displayName]);
+  const { logout } =
+    useFirebaseAuth();
+
+  const {
+    user,
+    displayName,
+  } = useAuthUser();
+
+  const [collapsed, setCollapsed] =
+    useState(false);
+
+  const [uploadOpen, setUploadOpen] =
+    useState(false);
+
+  const [profileOpen, setProfileOpen] =
+    useState(false);
+
+  const [search, setSearch] =
+    useState('');
+
+  const panelRef =
+    useRef<HTMLDivElement>(
+      null
+    );
+
+  const avatarInitial =
+    useMemo(() => {
+      const first =
+        displayName
+          ?.trim()
+          ?.charAt(0);
+
+      return first
+        ? first.toUpperCase()
+        : 'N';
+    }, [displayName]);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    function clickOutside(
+      e: MouseEvent
+    ) {
       if (
         panelRef.current &&
-        !panelRef.current.contains(e.target as Node)
+        !panelRef.current.contains(
+          e.target as Node
+        )
       ) {
-        setProfileOpen(false);
+        setProfileOpen(
+          false
+        );
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener(
+      'mousedown',
+      clickOutside
+    );
 
     return () =>
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener(
+        'mousedown',
+        clickOutside
+      );
   }, []);
 
   async function handleLogout() {
@@ -91,17 +143,47 @@ export function ChatSidebar() {
     router.push('/');
   }
 
-  function goAccount() {
+  function handleAccountClick() {
     setProfileOpen(false);
     router.push('/account');
   }
+
+  const filteredChats =
+    chats.filter((chat) =>
+      chat.title
+        .toLowerCase()
+        .includes(
+          search.toLowerCase()
+        )
+    );
+
+  const profileMenuItems = [
+    {
+      icon: UserCircle2,
+      label: 'Account',
+    },
+    {
+      icon: CreditCard,
+      label: 'Subscription',
+    },
+    {
+      icon: BarChart3,
+      label: 'Usage',
+    },
+    {
+      icon: Settings,
+      label: 'Settings',
+    },
+  ] as const;
 
   return (
     <>
       <aside
         className={cn(
-          'relative flex flex-col h-full shrink-0 border-r border-sidebar-border bg-sidebar transition-all duration-300',
-          isCollapsed ? 'w-[64px]' : 'w-[280px]'
+          'h-full border-r border-sidebar-border bg-sidebar flex flex-col transition-all duration-300 shrink-0',
+          collapsed
+            ? 'w-[72px]'
+            : 'w-[300px]'
         )}
       >
         {/* Header */}
@@ -109,228 +191,297 @@ export function ChatSidebar() {
           <div
             className={cn(
               'flex items-center gap-3',
-              isCollapsed && 'justify-center'
+              collapsed &&
+                'justify-center'
             )}
           >
-            <div className="w-10 h-10 rounded-2xl btn-gradient flex items-center justify-center shadow-lg shrink-0">
+            <div className="w-11 h-11 rounded-2xl btn-gradient flex items-center justify-center shadow-lg shrink-0">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
 
-            {!isCollapsed && (
+            {!collapsed && (
               <div className="min-w-0">
-                <div className="font-semibold text-[18px] leading-none tracking-tight">
+                <div className="font-semibold text-[18px] tracking-tight">
                   NeuralChat
                 </div>
 
-                <div className="text-[10px] uppercase tracking-[0.25em] opacity-50 mt-1">
-                  PRO AI
+                <div className="text-[10px] uppercase tracking-[0.24em] opacity-45 mt-0.5">
+                  PREMIUM AI
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="px-3 pb-3 space-y-2">
+        {/* Actions */}
+        <div className="px-3 space-y-2 pb-3">
           <Button
-            onClick={createNewChat}
+            onClick={
+              createNewChat
+            }
             className={cn(
-              'btn-gradient rounded-xl h-11 text-white shadow-md',
-              isCollapsed
-                ? 'w-10 p-0'
-                : 'w-full justify-start gap-2 px-3'
+              'h-11 rounded-2xl btn-gradient text-white shadow-md',
+              collapsed
+                ? 'w-11 p-0'
+                : 'w-full justify-start gap-2 px-4'
             )}
           >
             <Plus className="w-4 h-4 shrink-0" />
-            {!isCollapsed && <span>New chat</span>}
+
+            {!collapsed &&
+              'New Chat'}
           </Button>
 
           <Button
             variant="ghost"
-            onClick={() => setUploadOpen(true)}
+            onClick={() =>
+              setUploadOpen(
+                true
+              )
+            }
             className={cn(
-              'rounded-xl h-10 hover:bg-sidebar-accent',
-              isCollapsed
-                ? 'w-10 p-0'
-                : 'w-full justify-start gap-2 px-3'
+              'h-10 rounded-2xl',
+              collapsed
+                ? 'w-11 p-0'
+                : 'w-full justify-start gap-2 px-4'
             )}
           >
             <FileUp className="w-4 h-4 shrink-0" />
-            {!isCollapsed && <span>Upload docs</span>}
+
+            {!collapsed &&
+              'Upload Docs'}
           </Button>
         </div>
+
+        {/* Search */}
+        {!collapsed && (
+          <div className="px-3 pb-3">
+            <div className="h-10 rounded-2xl border border-sidebar-border bg-background/60 flex items-center gap-2 px-3">
+              <Search className="w-4 h-4 opacity-50" />
+
+              <input
+                value={
+                  search
+                }
+                onChange={(
+                  e
+                ) =>
+                  setSearch(
+                    e.target
+                      .value
+                  )
+                }
+                placeholder="Search chats"
+                className="bg-transparent outline-none text-sm flex-1"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Chats */}
         <ScrollArea className="flex-1 px-2">
           <div className="space-y-1 pb-3">
-            {chats.map((chat, idx) => {
-              const active = currentChat?.id === chat.id;
+            {filteredChats.map(
+              (
+                chat,
+                i
+              ) => {
+                const active =
+                  currentChat?.id ===
+                  chat.id;
 
-              return (
-                <motion.div
-                  key={chat.id}
-                  custom={idx}
-                  variants={itemVariants}
-                  initial="hidden"
-                  animate="visible"
-                  layout
-                  className="group relative"
-                >
-                  <button
-                    onClick={() => switchChat(chat.id)}
-                    className={cn(
-                      'w-full h-10 rounded-xl text-sm flex items-center gap-2 px-3 transition-all',
-                      active
-                        ? 'bg-sidebar-accent shadow-sm'
-                        : 'hover:bg-sidebar-accent/60',
-                      isCollapsed && 'justify-center px-0'
-                    )}
+                return (
+                  <motion.div
+                    key={
+                      chat.id
+                    }
+                    initial={{
+                      opacity: 0,
+                      x: -8,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      x: 0,
+                    }}
+                    transition={{
+                      delay:
+                        i *
+                        0.02,
+                    }}
+                    className="group relative"
                   >
-                    <MessageSquare className="w-4 h-4 shrink-0" />
-
-                    {!isCollapsed && (
-                      <span className="truncate flex-1 text-left">
-                        {chat.title}
-                      </span>
-                    )}
-                  </button>
-
-                  {!isCollapsed && active && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteCurrentChat();
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100 transition"
+                      onClick={() =>
+                        switchChat(
+                          chat.id
+                        )
+                      }
+                      className={cn(
+                        'w-full h-11 rounded-2xl text-sm flex items-center gap-3 px-3 transition-all',
+                        active
+                          ? 'bg-sidebar-accent shadow-sm'
+                          : 'hover:bg-sidebar-accent/70',
+                        collapsed &&
+                          'justify-center px-0'
+                      )}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <MessageSquare className="w-4 h-4 shrink-0" />
+
+                      {!collapsed && (
+                        <span className="truncate flex-1 text-left">
+                          {
+                            chat.title
+                          }
+                        </span>
+                      )}
                     </button>
-                  )}
-                </motion.div>
-              );
-            })}
+
+                    {!collapsed &&
+                      active && (
+                        <button
+                          onClick={(
+                            e
+                          ) => {
+                            e.stopPropagation();
+                            deleteCurrentChat();
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-100"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                  </motion.div>
+                );
+              }
+            )}
           </div>
         </ScrollArea>
 
         {/* Footer */}
         <div
           ref={panelRef}
-          className="border-t border-sidebar-border p-3 relative"
+          className="p-3 border-t border-sidebar-border relative"
         >
-          {/* Premium Profile Popup */}
+          {/* Popup */}
           <AnimatePresence>
-            {!isCollapsed && profileOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.97 }}
-                transition={{ duration: 0.18 }}
-                className="absolute bottom-[76px] left-3 right-3 rounded-3xl border border-sidebar-border bg-background/95 backdrop-blur-xl shadow-2xl p-2 z-50"
-              >
-                {/* Plan Badge */}
-                <div className="px-3 py-2 mb-2 rounded-2xl bg-primary/10 border border-primary/20 flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium">
-                    Free Plan
-                  </span>
-                </div>
-
-                {[
-                  {
-                    icon: UserCircle2,
-                    label: 'My Account',
-                  },
-                  {
-                    icon: CreditCard,
-                    label: 'Subscription',
-                  },
-                  {
-                    icon: BarChart3,
-                    label: 'Usage',
-                  },
-                  {
-                    icon: Settings,
-                    label: 'Settings',
-                  },
-                ].map((item) => {
-                  const Icon = item.icon;
-
-                  return (
-                    <button
-                      key={item.label}
-                      onClick={goAccount}
-                      className="w-full h-11 px-3 rounded-2xl flex items-center gap-3 hover:bg-sidebar-accent text-sm transition"
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-
-                <div className="my-2 border-t border-sidebar-border" />
-
-                <button
-                  onClick={handleLogout}
-                  className="w-full h-11 px-3 rounded-2xl flex items-center gap-3 hover:bg-red-500/10 text-red-400 text-sm transition"
+            {!collapsed &&
+              profileOpen && (
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    y: 8,
+                    scale: 0.98,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    y: 8,
+                  }}
+                  className="absolute bottom-[76px] left-3 right-3 rounded-3xl border border-sidebar-border bg-background/95 backdrop-blur-xl shadow-2xl p-2 z-50"
                 >
-                  <LogOut className="w-4 h-4 shrink-0" />
-                  <span>Logout</span>
-                </button>
-              </motion.div>
-            )}
+                  <div className="px-3 py-2 mb-2 rounded-2xl bg-primary/10 border border-primary/20 flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-primary" />
+
+                    <span className="text-xs font-medium">
+                      Free Plan
+                    </span>
+                  </div>
+
+                  {profileMenuItems.map(
+                    (
+                      item
+                    ) => {
+                      const Icon =
+                        item.icon;
+
+                      return (
+                        <button
+                          key={
+                            item.label
+                          }
+                          onClick={
+                            handleAccountClick
+                          }
+                          className="w-full h-11 rounded-2xl px-3 flex items-center gap-3 hover:bg-sidebar-accent text-sm"
+                        >
+                          <Icon className="w-4 h-4" />
+                          {
+                            item.label
+                          }
+                        </button>
+                      );
+                    }
+                  )}
+
+                  <div className="my-2 border-t border-sidebar-border" />
+
+                  <button
+                    onClick={
+                      handleLogout
+                    }
+                    className="w-full h-11 rounded-2xl px-3 flex items-center gap-3 hover:bg-red-500/10 text-red-400 text-sm"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </motion.div>
+              )}
           </AnimatePresence>
 
           {/* Trigger */}
           <button
             onClick={() =>
-              setProfileOpen(!profileOpen)
+              setProfileOpen(
+                !profileOpen
+              )
             }
             className={cn(
-              'w-full rounded-2xl px-2 py-2 flex items-center gap-3 hover:bg-sidebar-accent transition-all duration-300 hover:shadow-sm',
-              isCollapsed && 'justify-center px-0'
+              'w-full rounded-2xl px-2 py-2 flex items-center gap-3 hover:bg-sidebar-accent transition',
+              collapsed &&
+                'justify-center px-0'
             )}
           >
-            {/* Avatar */}
-            <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-2xl overflow-hidden bg-muted ring-1 ring-border shadow-sm transition-transform duration-300 group-hover:scale-[1.02]">
-                {user?.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={displayName}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-full h-full btn-gradient flex items-center justify-center">
-                    <span className="text-white text-sm font-semibold">
-                      {avatarInitial}
-                    </span>
-                  </div>
-                )}
-              </div>
-              {/* Online Indicator */}
-              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-sidebar shadow-sm" />
+            <div className="w-10 h-10 rounded-2xl overflow-hidden bg-muted shrink-0">
+              {user?.photoURL ? (
+                <img
+                  src={
+                    user.photoURL
+                  }
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full btn-gradient flex items-center justify-center text-white text-sm font-semibold">
+                  {
+                    avatarInitial
+                  }
+                </div>
+              )}
             </div>
 
-            {!isCollapsed && (
+            {!collapsed && (
               <>
                 <div className="min-w-0 flex-1 text-left">
-                  <div className="flex items-center gap-1.5">
-                    <div className="text-[14px] font-semibold truncate">
-                      {displayName}
-                    </div>
-                    <Crown className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <div className="text-sm font-semibold truncate">
+                    {
+                      displayName
+                    }
                   </div>
 
                   <div className="text-[11px] opacity-50 truncate">
-                    {user?.email || 'Guest'}
+                    {user?.email}
                   </div>
                 </div>
 
                 <ChevronUp
                   className={cn(
-                    'w-4 h-4 opacity-50 transition-transform',
-                    profileOpen && 'rotate-180'
+                    'w-4 h-4 opacity-45 transition-transform',
+                    profileOpen &&
+                      'rotate-180'
                   )}
                 />
               </>
@@ -343,11 +494,13 @@ export function ChatSidebar() {
               size="icon"
               variant="ghost"
               onClick={() =>
-                setIsCollapsed(!isCollapsed)
+                setCollapsed(
+                  !collapsed
+                )
               }
-              className="w-8 h-8 rounded-xl hover:bg-sidebar-accent"
+              className="w-8 h-8 rounded-xl"
             >
-              {isCollapsed ? (
+              {collapsed ? (
                 <PanelLeft className="w-4 h-4" />
               ) : (
                 <PanelLeftClose className="w-4 h-4" />
@@ -359,7 +512,9 @@ export function ChatSidebar() {
 
       <DocumentUploadDialog
         open={uploadOpen}
-        onOpenChange={setUploadOpen}
+        onOpenChange={
+          setUploadOpen
+        }
       />
     </>
   );

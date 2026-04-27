@@ -2,9 +2,13 @@
 
 import React, {
   useState,
-  useRef,
-  useEffect,
+  useCallback,
 } from 'react';
+
+import {
+  motion,
+  AnimatePresence,
+} from 'framer-motion';
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -14,41 +18,72 @@ import {
   Check,
   User,
   Sparkles,
-  MessageSquareText,
+  CornerUpLeft,
 } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
 import { useChatContext } from '@/lib/chat-context';
+import { cn } from '@/lib/utils';
 
-interface Props {
+interface MessageProps {
   id: string;
   content: string;
   role: 'user' | 'assistant';
   timestamp: number;
 }
 
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+/* ---------------------------------- */
+
+function AIAvatar() {
+  return (
+    <div className="w-8 h-8 rounded-xl btn-gradient flex items-center justify-center shadow-md shrink-0 mt-1">
+      <Sparkles className="w-4 h-4 text-white" />
+    </div>
+  );
+}
+
+function UserAvatar() {
+  return (
+    <div className="w-8 h-8 rounded-xl surface-raised flex items-center justify-center shrink-0 mt-1">
+      <User className="w-4 h-4 opacity-70" />
+    </div>
+  );
+}
+
+/* ---------------------------------- */
+
+function Markdown({
+  children,
+}: {
+  children: string;
+}) {
+  return (
+    <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-7 prose-pre:my-4 prose-p:my-3 prose-headings:mb-3 prose-headings:mt-5 prose-li:my-1 prose-code:before:hidden prose-code:after:hidden">
+      <ReactMarkdown
+        remarkPlugins={[
+          remarkGfm,
+        ]}
+      >
+        {children}
+      </ReactMarkdown>
+    </div>
+  );
+}
+
+/* ---------------------------------- */
+
 export function Message({
   id,
   content,
   role,
   timestamp,
-}: Props) {
+}: MessageProps) {
   const isUser =
     role === 'user';
 
-  const wrapperRef =
-    useRef<HTMLDivElement>(null);
-
   const [copied, setCopied] =
     useState(false);
-
-  const [popup, setPopup] =
-    useState({
-      visible: false,
-      text: '',
-      x: 0,
-      y: 0,
-    });
 
   const {
     setReplyTarget,
@@ -65,224 +100,96 @@ export function Message({
       }
     );
 
-  const closePopup =
-    () =>
-      setPopup({
-        visible: false,
-        text: '',
-        x: 0,
-        y: 0,
-      });
-
-  /* copy */
-
   const handleCopy =
-    async () => {
-      await navigator.clipboard.writeText(
+    useCallback(() => {
+      navigator.clipboard.writeText(
         content
       );
 
       setCopied(true);
 
-      setTimeout(
-        () =>
-          setCopied(false),
-        1500
-      );
-    };
+      setTimeout(() => {
+        setCopied(false);
+      }, 1800);
+    }, [content]);
 
-  /* ask full */
-
-  const askFull =
-    () => {
+  const handleReply =
+    useCallback(() => {
       setReplyTarget({
         id,
         content,
       });
-    };
-
-  /* ask selected */
-
-  const askSelected =
-    () => {
-      setReplyTarget({
-        id,
-        content:
-          popup.text,
-      });
-
-      closePopup();
-    };
-
-  /* text selection */
-
-  useEffect(() => {
-    if (isUser) return;
-
-    const handleSelection =
-      () => {
-        const sel =
-          window.getSelection();
-
-        const text =
-          sel
-            ?.toString()
-            .trim() || '';
-
-        if (!text) {
-          closePopup();
-          return;
-        }
-
-        try {
-          const range =
-            sel!.getRangeAt(0);
-
-          const rect =
-            range.getBoundingClientRect();
-
-          const parent =
-            wrapperRef.current?.getBoundingClientRect();
-
-          if (!parent) return;
-
-          setPopup({
-            visible: true,
-            text,
-            x:
-              rect.left -
-              parent.left +
-              rect.width / 2,
-            y:
-              rect.top -
-              parent.top -
-              14,
-          });
-        } catch {
-          closePopup();
-        }
-      };
-
-    const hide =
-      (
-        e: MouseEvent
-      ) => {
-        const target =
-          e.target as HTMLElement;
-
-        if (
-          !target.closest(
-            '.selection-popup'
-          )
-        ) {
-          closePopup();
-        }
-      };
-
-    document.addEventListener(
-      'mouseup',
-      handleSelection
-    );
-
-    document.addEventListener(
-      'mousedown',
-      hide
-    );
-
-    return () => {
-      document.removeEventListener(
-        'mouseup',
-        handleSelection
-      );
-
-      document.removeEventListener(
-        'mousedown',
-        hide
-      );
-    };
-  }, [isUser]);
+    }, [id, content]);
 
   return (
-    <div
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 8,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.22,
+        ease: EASE,
+      }}
       className={cn(
-        'group flex gap-3 px-4 sm:px-6 py-2 max-w-[780px] mx-auto',
+        'group/msg max-w-[860px] mx-auto px-4 sm:px-6 py-3 flex gap-3',
         isUser
           ? 'justify-end'
           : 'justify-start'
       )}
     >
-      {!isUser && (
-        <div className="w-8 h-8 rounded-xl btn-gradient flex items-center justify-center mt-1 shrink-0">
-          <Sparkles className="w-4 h-4 text-white" />
-        </div>
-      )}
+      {!isUser && <AIAvatar />}
 
       <div
-        ref={wrapperRef}
         className={cn(
-          'relative flex flex-col gap-2',
+          'min-w-0 flex flex-col gap-1.5',
           isUser
-            ? 'items-end max-w-[70%]'
-            : 'items-start max-w-[85%]'
+            ? 'items-end max-w-[76%]'
+            : 'items-start max-w-[92%] sm:max-w-[82%]'
         )}
       >
-        {/* popup */}
-        {popup.visible &&
-          !isUser && (
-            <div
-              className="selection-popup"
-              style={{
-                left:
-                  popup.x,
-                top:
-                  popup.y,
-              }}
-            >
-              <button
-                onClick={
-                  askSelected
-                }
-                className="selection-action"
-              >
-                <MessageSquareText className="w-4 h-4" />
-                Ask NeuralAi
-              </button>
-            </div>
-          )}
-
-        {/* bubble */}
+        {/* Bubble */}
         <div
           className={cn(
-            'px-5 py-4 rounded-2xl border text-[15px] leading-7 select-text',
+            'relative px-5 py-4 rounded-2xl break-words',
             isUser
-              ? 'text-white rounded-tr-md'
-              : 'bg-card border-border rounded-tl-md'
+              ? 'rounded-tr-md text-white'
+              : 'rounded-tl-md border border-border bg-card'
           )}
-          style={{
-            ...(isUser
+          style={
+            isUser
               ? {
                   background:
-                    'linear-gradient(135deg,#667eea,#764ba2)',
+                    'linear-gradient(135deg, color-mix(in oklch, var(--primary) 88%, white 12%) 0%, color-mix(in oklch, var(--primary) 72%, black 28%) 100%)',
                 }
-              : {}),
-          }}
+              : {}
+          }
         >
           {isUser ? (
-            <p>{content}</p>
-          ) : (
-            <ReactMarkdown
-              remarkPlugins={[
-                remarkGfm,
-              ]}
-            >
+            <p className="whitespace-pre-wrap text-[15px] leading-7">
               {content}
-            </ReactMarkdown>
+            </p>
+          ) : (
+            <Markdown>
+              {content}
+            </Markdown>
           )}
         </div>
 
-        {/* actions */}
-        <div className="flex items-center gap-3 px-1 text-xs opacity-0 group-hover:opacity-100 transition">
-          <span className="opacity-50">
+        {/* Meta */}
+        <div
+          className={cn(
+            'flex items-center gap-1.5 px-1',
+            isUser
+              ? 'flex-row-reverse'
+              : ''
+          )}
+        >
+          <span className="text-[11px] opacity-55">
             {time}
           </span>
 
@@ -292,40 +199,67 @@ export function Message({
                 onClick={
                   handleCopy
                 }
-                className="hover:opacity-100 opacity-70 flex items-center gap-1"
+                className="opacity-0 group-hover/msg:opacity-100 text-[11px] px-2 py-1 rounded-lg hover:bg-muted transition"
               >
-                {copied ? (
-                  <>
-                    <Check className="w-3 h-3" />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3 h-3" />
-                    Copy
-                  </>
-                )}
+                <AnimatePresence
+                  mode="wait"
+                  initial={
+                    false
+                  }
+                >
+                  {copied ? (
+                    <motion.span
+                      key="done"
+                      initial={{
+                        opacity: 0,
+                      }}
+                      animate={{
+                        opacity: 1,
+                      }}
+                      exit={{
+                        opacity: 0,
+                      }}
+                      className="flex items-center gap-1"
+                    >
+                      <Check className="w-3 h-3" />
+                      Copied
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="copy"
+                      initial={{
+                        opacity: 0,
+                      }}
+                      animate={{
+                        opacity: 1,
+                      }}
+                      exit={{
+                        opacity: 0,
+                      }}
+                      className="flex items-center gap-1"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </button>
 
               <button
                 onClick={
-                  askFull
+                  handleReply
                 }
-                className="hover:opacity-100 opacity-70 flex items-center gap-1"
+                className="opacity-0 group-hover/msg:opacity-100 text-[11px] px-2 py-1 rounded-lg hover:bg-muted transition flex items-center gap-1"
               >
-                <MessageSquareText className="w-3 h-3" />
-                Ask NeuralAi
+                <CornerUpLeft className="w-3 h-3" />
+                Ask about this
               </button>
             </>
           )}
         </div>
       </div>
 
-      {isUser && (
-        <div className="w-8 h-8 rounded-xl border border-border flex items-center justify-center mt-1 shrink-0">
-          <User className="w-4 h-4 opacity-60" />
-        </div>
-      )}
-    </div>
+      {isUser && <UserAvatar />}
+    </motion.div>
   );
 }
